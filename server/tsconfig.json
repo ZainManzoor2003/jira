@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    // === File Structure ===
+    "rootDir": "src",
+    "outDir": "dist",
+
+    // === Module & Environment ===
+    "moduleResolution": "NodeNext",
+    "lib": ["ESNext"],
+    "types": ["node"],
+    "module": "nodenext",
+    "target": "esnext",
+
+    // === Output & Build Options ===
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    // === Type Checking ===
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // === Compatibility ===
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+
+    // === Optional Style/Consistency Rules ===
+    // "noImplicitReturns": true,
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true
+  },
+  "include": ["src"]
+}
