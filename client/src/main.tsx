@@ -2,12 +2,12 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import Home from './pages/Home.tsx';
 import Login from './pages/Login.tsx';
 import Signup from './pages/Signup.tsx';
 import VerifyEmail from './pages/VerifyEmail.tsx';
-import Tasks from './pages/Tasks.tsx';
+import UserTasks from './pages/UserTasks.tsx';
 
 const router = createBrowserRouter([
   {
@@ -15,10 +15,11 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { path: "", element: <Home /> },
+      { index: true, element: <Navigate to="login" /> }, // 👈 redirect default
       { path: "login", element: <Login /> },
       { path: "signup", element: <Signup /> },
       { path: "verifyEmail", element: <VerifyEmail /> },
-      { path: "tasks", element: <Tasks /> }
+      { path: "user/tasks", element: <UserTasks /> }
     ],
   },
 ]);

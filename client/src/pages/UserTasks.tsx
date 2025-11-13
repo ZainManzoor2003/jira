@@ -104,7 +104,7 @@ const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen, to
 
 
 // --- Main App Component ---
-const Tasks: React.FC = () => {
+const UserTasks: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const toggleSidebar = () => {
@@ -228,4 +228,4 @@ const Tasks: React.FC = () => {
     );
 };
 
-export default Tasks;
+export default UserTasks;
