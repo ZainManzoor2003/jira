@@ -1,13 +1,27 @@
-import { db } from "./db/db";
-import { users } from "./db/schema";
+// server.js
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const router = require('../routers/authRouter');
 
-async function main() {
-  // Insert a new user
-  await db.insert(users).values({ name: "Zain", age: 24 });
+const app = express();
 
-  // Fetch all users
-  const allUsers = await db.select().from(users);
-  console.log(allUsers);
-}
+const corsOptions = {
+  origin: ['http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
 
-main().catch(console.error);
+app.use(cookieParser());
+app.use(cors(corsOptions));
+app.use(express.json());
+app.use('/', router);
+
+// connect drizzle and run server
+  app.listen(process.env.PORT, () => {
+    console.log('Server Connected at port', process.env.PORT);
+  });
+
+module.exports = app;
