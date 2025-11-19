@@ -9,6 +9,7 @@ import Signup from './pages/Signup.tsx';
 import VerifyEmail from './pages/VerifyEmail.tsx';
 import UserTasks from './pages/UserTasks.tsx';
 
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -18,7 +19,7 @@ const router = createBrowserRouter([
       { index: true, element: <Navigate to="login" /> }, // 👈 redirect default
       { path: "login", element: <Login /> },
       { path: "signup", element: <Signup /> },
-      { path: "verifyEmail", element: <VerifyEmail /> },
+      { path: "verifyEmail/:email", element: <VerifyEmail /> },
       { path: "user/tasks", element: <UserTasks /> }
     ],
   },

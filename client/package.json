@@ -12,11 +12,12 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
     "@types/react-beautiful-dnd": "^13.1.8",
+    "axios": "^1.13.2",
     "lucide-react": "^0.553.0",
     "react": "^19.2.0",
-    "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
+    "react-toastify": "^11.0.5",
     "tailwindcss": "^4.1.17"
   },
   "devDependencies": {

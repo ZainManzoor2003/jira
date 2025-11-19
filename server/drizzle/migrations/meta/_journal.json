@@ -8,6 +8,41 @@
       "when": 1763442982529,
       "tag": "0000_cold_shocker",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1763464927374,
+      "tag": "0001_naive_ogun",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763465505097,
+      "tag": "0002_sleepy_molecule_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1763466102039,
+      "tag": "0003_lush_pandemic",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1763547884290,
+      "tag": "0004_sticky_psylocke",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1763549944570,
+      "tag": "0005_many_daredevil",
+      "breakpoints": true
     }
   ]
 }

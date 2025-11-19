@@ -1,7 +1,85 @@
-import React from 'react'
+import axios from 'axios';
+import React, { useRef, useState, type ChangeEvent } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { toast } from "react-toastify";
 
 export default function VerifyEmail() {
-    
+
+    const { email } = useParams()
+    const navigate = useNavigate()
+    const [loading, setLoading] = useState(false)
+    axios.defaults.baseURL = 'http://localhost:3001'
+
+    const inputLength = 6;
+
+    // State to store OTP digits
+    const [otp, setOtp] = useState<string>(""); // store OTP as a string
+
+    // Refs to input elements
+    const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
+
+    // Handle input change
+    const handleChange = (e: ChangeEvent<HTMLInputElement>, index: number) => {
+        const value = e.target.value;
+
+        // Only allow digits
+        if (!/^\d*$/.test(value)) return;
+
+        // Build the new OTP string
+        let newOtp = otp.split("");
+        while (newOtp.length < inputLength) newOtp.push(""); // fill missing chars
+        newOtp[index] = value;
+        newOtp = newOtp.slice(0, inputLength); // ensure length limit
+
+        setOtp(newOtp.join(""));
+
+        // Move focus to next input
+        if (value && index < inputLength - 1) {
+            inputsRef.current[index + 1]?.focus();
+        }
+    };
+
+    const verifyOtp = async () => {
+        if (otp.length < inputLength) {
+            toast.error("Please enter a valid OTP");
+            return;
+        }
+        setLoading(true)
+        try {
+            const res = await axios.post("/auth/verifyEmail", { email, otp });
+             if (res.data.success == true) {
+                toast.success(res.data.message);
+                navigate('/login');
+            }
+            else {
+                toast.error(res.data.message);
+            }
+        } catch (err: any) {
+            console.error(err.message);
+        }
+        setOtp("");
+        inputsRef.current[0]?.focus();
+        setLoading(false)
+    };
+
+    const resendOtp = async () => {
+        setLoading(true)
+        try {
+            const res = await axios.post("/auth/resendOtp", { email });
+            if (res.data.success == true) {
+                toast.success(res.data.message);
+            }
+            else {
+                toast.error(res.data.message);
+            }
+        } catch (err: any) {
+            console.error(err.message);
+        }
+        setLoading(false)
+    };
+
+
+
     return (
         <div className='w-full h-[100vh] flex justify-center items-center '>
             <div className="max-w-[400px] shadow-lg p-7 min-w-[300px]">
@@ -18,17 +96,27 @@ export default function VerifyEmail() {
                     focus:border-blue-600 focus:outline-none focus:border-2' placeholder='Enter Your Email' />
                 </div> */}
                 <p className='text-[0.8rem] mt-3 text-gray-500'>To complete your account setup, enter the code we've sent to:</p>
-                <p className='text-[1rem] mt-3 text-gray-700 font-bold'>zainmanzoor2003@gmail.com</p>
+                <p className='text-[1rem] mt-3 text-gray-700 font-bold'>{email}</p>
                 <div className='flex gap-2 mt-5'>
-                    {[1,2,3,4,5,6].map(()=>(
-
-                    <input type="text"maxLength={1} className='w-[17%] md:w-[50px] border-1 border-gray-500 h-10 rounded-sm text-sm
-                    focus:border-blue-600 focus:outline-none focus:border-2 text-center'/>
+                    {[1, 2, 3, 4, 5, 6].map((value, index) => (
+                        <input
+                            key={index}
+                            type="text"
+                            maxLength={1}
+                            value={otp[index] || ""}
+                            onChange={(e) => handleChange(e, index)}
+                            ref={(el) => { inputsRef.current[index] = el; }}
+                            className="w-[17%] md:w-[50px] border-1 border-gray-500 h-10 rounded-sm text-sm
+              focus:border-blue-600 focus:outline-none focus:border-2 text-center"
+                        />
                     ))}
                 </div>
                 <button className='cursor-pointer w-full p-3 text-white bg-blue-600 mt-3 font-bold text-[0.8rem]
-                 hover:bg-blue-700 transition-all duration-200'>Verify</button>
-                <p className='text-[0.8rem] mt-5 text-blue-600 text-center hover:underline cursor-pointer'>Didn't receive an email? Resend email</p>
+                 hover:bg-blue-700 transition-all duration-200 disabled:opacity-50'disabled={loading} onClick={verifyOtp}>Verify</button>
+                <p className='text-[0.8rem] mt-5 text-blue-600 text-center hover:underline cursor-pointer'
+                    onClick={resendOtp}>
+                    Didn't receive an email? Resend email
+                </p>
                 <hr className='mt-3 text-gray-500' />
                 <div className='flex justify-center mt-5'>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 198 32" focusable="false" aria-hidden="true" height="32" fill="none">
@@ -40,6 +128,8 @@ export default function VerifyEmail() {
                 <p className='text-center text-[0.7rem] text-gray-500 mt-3'>This site is
                     protected by <span className='text-blue-600 underline'>reCAPTCHA</span> and the <span className='text-blue-600 underline'>Google Privacy</span>apply.</p>
             </div>
+
+
 
         </div>
     )
