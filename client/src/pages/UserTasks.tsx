@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import {
     Search, Plus, Filter, MoreHorizontal, LayoutDashboard, CheckCircle,
-    ChevronDown, List, Clock, FolderOpen, Share2, Star, X,
-    MinusSquare
+    ChevronDown, List, Clock, FolderOpen, Share2, Star
 } from 'lucide-react';
 
 import Header from '../components/Header';
@@ -60,7 +59,7 @@ const mockColumns: Column[] = [
 
 // --- Main Components ---
 
-const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen, toggle }) => {
+const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen }) => {
     const NavItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean }> = ({ icon, label, active }) => (
         <div className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${active ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}>
             {icon}
@@ -76,7 +75,7 @@ const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen, to
             <div className="p-4 flex flex-col h-full">
 
                 {/* Navigation */}
-                <nav className="space-y-1 overflow-y-auto flex-grow">
+                <nav className="space-y-1 overflow-y-auto grow">
                     <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">For you</h4>
                     <NavItem icon={<FolderOpen className="w-5 h-5" />} label="Spaces" />
                     <NavItem icon={<Clock className="w-5 h-5" />} label="Recent" />

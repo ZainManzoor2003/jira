@@ -1,8 +1,44 @@
-import React from 'react'
+import axios from 'axios'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from "react-toastify";
 
 export default function Login() {
+    axios.defaults.baseURL = 'http://localhost:3001'
+     const [email, setEmail] = useState('')
+    const [loading, setLoading] = useState(false)
     const navigate=useNavigate()
+
+    // Email validation regex
+    const isValidEmail = (email: string) => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    }
+
+    const handleLogin = async () => {
+        setLoading(true)
+        if (!isValidEmail(email)) {
+            toast.error('Please enter a valid email address')
+            setLoading(false)
+            return
+        }
+
+        try {
+            const response = await axios.post('http://localhost:3001/auth/login', { email }, { withCredentials: true } )
+            console.log('Login response:', response.data)
+            if (response.data.success == true) {
+                toast.success(response.data.message)
+                navigate(`/user/tasks`)
+            }
+            else {
+                // Navigate to login or next page if needed
+                toast.error(response.data.message)
+            }
+        } catch (err: any) {
+
+            toast.error('Signup failed. Try again.')
+        }
+        setLoading(false)
+    }
     return (
         <div className='w-full h-[100vh] flex justify-center items-center '>
             <div className="max-w-[400px] shadow-lg p-7 min-w-[300px]">
@@ -16,10 +52,13 @@ export default function Login() {
                 <div className='flex flex-col items-start justify-start mt-3'>
                     <label className='text-[0.8rem] text-gray-500 font-bold'>Email *</label>
                     <input type="text" className='w-full border-1 mt-1 border-gray-500 h-10 rounded-sm text-sm pl-2
-                    focus:border-blue-600 focus:outline-none focus:border-2' placeholder='Enter Your Email'/>
+                    focus:border-blue-600 focus:outline-none focus:border-2' placeholder='Enter Your Email'
+                     value={email}
+                        onChange={(e) => setEmail(e.target.value)}/>
                 </div>
                 <button className='cursor-pointer w-full p-3 text-white bg-blue-600 mt-3 font-bold
-                 text-[0.8rem] hover:bg-blue-700 transition-all duration-200'>Continue</button>
+                 text-[0.8rem] hover:bg-blue-700 transition-all duration-200 disabled:opacity-50' 
+                 onClick={handleLogin} disabled={loading} >Continue</button>
                 <p className='text-[0.8rem] mt-5 text-blue-600 text-center hover:underline cursor-pointer' onClick={()=>navigate('/signup')}>Create an account</p>
                 <hr className='mt-3 text-gray-500'/>
                 <div className='flex justify-center mt-5'>

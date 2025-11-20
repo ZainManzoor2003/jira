@@ -2,6 +2,50 @@ import { users } from "../src/db/schema"; // path to your users table
 import { db } from "../src/db/db"; // your Drizzle db instance
 import { eq } from 'drizzle-orm';
 const { sendEmailOtp } = require("../controllers/emailNotify"); // your email service
+import jwt from "jsonwebtoken";
+
+const login = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // 1. Validate input
+    if (!email)
+      return res.status(400).json({ message: "Email required" });
+
+    // 2. Check if user exists
+    const userData = await db.select().from(users).where(eq(users.email, email));
+    if (userData.length === 0)
+      return res.json({ message: "User not found", success: false });
+
+    const user = userData[0];
+
+    // 4. Create JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET || "your_secret_key",
+      { expiresIn: "7d" }
+    );
+
+    // 5. Store token in HTTP-only cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false, // true for HTTPS
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // 6. Response
+    res.status(200).json({
+      message: "Logged in successfully",
+      user: { id: user.id, email: user.email },
+      token, // optional to return
+      success: true
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
 const signup = async (req, res) => {
   try {
@@ -153,6 +197,7 @@ const getAllProfiles = async (req, res) => {
   }
 };
 module.exports = {
+  login,
   signup,
   verifyEmail,
   resendOTP,
