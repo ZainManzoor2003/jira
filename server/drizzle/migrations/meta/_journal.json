@@ -43,6 +43,20 @@
       "when": 1763549944570,
       "tag": "0005_many_daredevil",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1763982083883,
+      "tag": "0006_absurd_rachel_grey",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1763982739338,
+      "tag": "0007_late_emma_frost",
+      "breakpoints": true
     }
   ]
 }
