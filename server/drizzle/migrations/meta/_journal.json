@@ -57,6 +57,20 @@
       "when": 1763982739338,
       "tag": "0007_late_emma_frost",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1764067824387,
+      "tag": "0008_milky_mantis",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1764067851120,
+      "tag": "0009_jazzy_bastion",
+      "breakpoints": true
     }
   ]
 }

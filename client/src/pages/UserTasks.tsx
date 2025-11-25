@@ -1,20 +1,32 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Search, Plus, Filter, MoreHorizontal, LayoutDashboard, CheckCircle,
-    ChevronDown, List, Clock, FolderOpen, Share2, Star
+    ChevronDown, List, Clock, FolderOpen, Share2, Star, Menu
 } from 'lucide-react';
 
-import Header from '../components/Header';
+// NOTE: Assuming Header is a simple component and does not cause errors
+const Header: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) => (
+    <div className="bg-white p-4 border-b border-gray-200 flex items-center">
+        <button onClick={toggleSidebar} className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg mr-4">
+            <Menu className="w-6 h-6" />
+        </button>
+        <h2 className="text-lg font-semibold text-gray-800">Board App</h2>
+    </div>
+);
+
 import ColumnComponent from '../components/ColumnComponent';
+import axios from 'axios';
 
 // --- Data Structures ---
+// This interface defines the expected shape of a Task object *within* the React components
 interface Task {
     id: string;
-    title: string;
+    title: string; // Use 'title'
     labels: string[];
-    dueDate: string;
+    dueDate: string; // Use 'dueDate'
     comments: number;
     assignees: string[];
+    status: string;
 }
 
 interface Column {
@@ -25,40 +37,7 @@ interface Column {
     color: string;
 }
 
-// --- Mock Data ---
-const mockColumns: Column[] = [
-    {
-        id: 'todo',
-        title: 'TO DO',
-        statusCount: 2,
-        color: 'text-red-500',
-        tasks: [
-            { id: 't1', title: 'Task 1', labels: ['SCRUM-1'], dueDate: 'Nov 12, 2025', comments: 0, assignees: ['user-a'] },
-            { id: 't2', title: 'kaisai ho', labels: ['SCRUM-6'], dueDate: 'Nov 12, 2025', comments: 1, assignees: ['user-b'] },
-        ],
-    },
-    {
-        id: 'in-progress',
-        title: 'IN PROGRESS',
-        statusCount: 1,
-        color: 'text-blue-500',
-        tasks: [
-            { id: 't3', title: 'hello', labels: ['SCRUM-5'], dueDate: 'Nov 17, 2025', comments: 0, assignees: ['user-a'] },
-        ],
-    },
-    {
-        id: 'done',
-        title: 'DONE',
-        statusCount: 1,
-        color: 'text-green-500',
-        tasks: [
-            { id: 't4', title: 'Task 2', labels: ['SCRUM-2'], dueDate: 'Nov 17, 2025', comments: 0, assignees: ['user-a', 'user-c'] },
-        ],
-    },
-];
-
-// --- Main Components ---
-
+// --- Sidebar and NavItem (Corrected) ---
 const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen }) => {
     const NavItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean }> = ({ icon, label, active }) => (
         <div className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${active ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}>
@@ -73,7 +52,6 @@ const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen }) 
             style={{ minWidth: '16rem' }} // Ensure min width on desktop
         >
             <div className="p-4 flex flex-col h-full">
-
                 {/* Navigation */}
                 <nav className="space-y-1 overflow-y-auto grow">
                     <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">For you</h4>
@@ -100,14 +78,132 @@ const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen }) 
 };
 
 
-
-
 // --- Main App Component ---
 const UserTasks: React.FC = () => {
+    axios.defaults.baseURL = 'http://localhost:3001'
+
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [columns, setColumns] = useState<Column[]>([
+        { id: "to-do", title: "TO DO", statusCount: 0, color: "text-red-500", tasks: [] },
+        { id: "in-progress", title: "IN PROGRESS", statusCount: 0, color: "text-blue-500", tasks: [] },
+        { id: "done", title: "DONE", statusCount: 0, color: "text-green-500", tasks: [] },
+    ]);
+
+    const getAllTasks = async () => {
+        // NOTE: Add type checking for better safety, assuming it returns an array of task objects
+        const res = await axios.get("/task/all");
+        return res.data;
+    };
+
+    // Add task
+    const addTask = async (data: {
+        taskName: string;
+        projectName: string;
+        status: string;
+        due_date: string;
+    }) => {
+        const res = await axios.post("/task/add", data);
+        return res.data;
+    };
+
+    // Update task status / fields (Unused but kept for completeness)
+    const updateTask = async (id: string, data: any) => {
+        const { updatedDueDate, updatedTaskTitle } = data
+        const payload = {
+            taskName: updatedTaskTitle
+            , projectName: "SCRUM",
+            due_date: updatedDueDate
+        }
+        const res = await axios.put(`/task/update/${id}`, payload);
+        return res.data;
+    };
+
+    // Fetch tasks from DB
+    const fetchTasks = async () => {
+        const allTasks: any[] = await getAllTasks(); // Assuming response is an array
+
+        const grouped = {
+            "to-do": [],
+            "in-progress": [],
+            "done": [],
+        } as { [key: string]: Task[] };
+
+        allTasks.forEach((t: any) => {
+            // FIX: Map the response fields (taskName, due_date) to the internal Task interface fields (title, dueDate)
+            const task: Task = {
+                id: t.id,
+                title: t.taskName, // Map from taskName
+                labels: [t.projectName],
+                comments: 0,
+                assignees: [],
+                // FIX: Map from due_date and format it
+                dueDate: t.due_date ? new Date(t.due_date).toDateString() : 'No date',
+                status: t.status,
+            };
+            if (grouped[t.status]) {
+                grouped[t.status].push(task);
+            }
+        });
+
+        setColumns(prev =>
+            prev.map(col => ({
+                ...col,
+                tasks: grouped[col.id] || [], // Ensure a fallback to empty array
+                statusCount: (grouped[col.id] || []).length
+            }))
+        );
+    };
+
+    useEffect(() => {
+        fetchTasks();
+    }, []);
+
+    // CREATE NEW TASK (passes to ColumnComponent)
+    const handleAddTask = async (columnId: string, title: string, dueDate: string) => {
+        const payload = {
+            taskName: title,
+            projectName: "SCRUM", // can make dynamic
+            status: columnId,
+            due_date: dueDate,
+        };
+
+        await addTask(payload);
+        fetchTasks(); // refresh UI
+    };
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);
+    };
+
+    const deleteTask = async (taskId: string) => {
+        try {
+            const res = await axios.delete(`/task/delete/${taskId}`);
+            console.log("Task deleted:", res.data);
+            return res.data;
+        } catch (error) {
+            console.error("Error deleting task:", error);
+            throw error;
+        }
+    };
+    const handleTaskAction = async (taskId: string, action: 'delete' | 'update', updateData: any) => {
+        try {
+            if (action === 'delete') {
+                await deleteTask(taskId);
+                console.log(`Task ${taskId} deleted successfully`);
+                fetchTasks(); // refresh your task list after deletion
+            } else if (action === 'update') {
+                if (!updateData) {
+                    console.log("No update data provided");
+                    return;
+                }
+                console.log(updateData)
+                await updateTask(taskId, updateData);
+                console.log(`Task ${taskId} updated successfully`);
+                fetchTasks(); // refresh your task list after update
+            }
+        } catch (error) {
+            console.error(`Error performing ${action} on task ${taskId}:`, error);
+        }
     };
 
     const tabs = [
@@ -162,8 +258,8 @@ const UserTasks: React.FC = () => {
                             <div
                                 key={index}
                                 className={`flex items-center py-2 text-sm font-medium cursor-pointer transition-colors ${tab.active
-                                        ? 'border-b-2 border-blue-600 text-blue-600'
-                                        : 'text-gray-600 hover:text-gray-800 hover:border-b-2 hover:border-gray-300'
+                                    ? 'border-b-2 border-blue-600 text-blue-600'
+                                    : 'text-gray-600 hover:text-gray-800 hover:border-b-2 hover:border-gray-300'
                                     }`}
                             >
                                 {tab.icon && <tab.icon className="w-4 h-4 mr-1.5" />}
@@ -214,11 +310,17 @@ const UserTasks: React.FC = () => {
                 </div>
 
                 {/* Kanban Board Container */}
-                
+
                 <main className="flex-1 overflow-x-auto p-4 bg-gray-100">
                     <div className="flex space-x-4 min-h-inherit">
-                        {mockColumns.map(column => (
-                            <ColumnComponent key={column.id} column={column} />
+                        {columns.map(col => (
+                            <ColumnComponent
+                                key={col.id}
+                                // FIX: Pass column object and handleAddTask prop separately
+                                column={col}
+                                onAddTask={handleAddTask}
+                                onTaskAction={handleTaskAction}
+                            />
                         ))}
                     </div>
                 </main>

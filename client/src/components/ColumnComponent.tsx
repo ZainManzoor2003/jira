@@ -1,18 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, MoreHorizontal, Check, X, Calendar } from 'lucide-react'; // Added Calendar icon
-import TaskCard from './TaskCard'; 
+import { Plus, MoreHorizontal, Check, X, Calendar, Edit} from 'lucide-react';
+import TaskCard from './TaskCard';
 
-// Interface definitions (kept from your original code)
-interface Column {
-  id: string;
-  title: string;
-  statusCount: number;
-  tasks: Task[];
-  color: string;
-  // Updated onAddTask to optionally include dueDate
-  onAddTask?: (columnId: string, title: string, dueDate: string) => void; 
-}
-
+// --- Interfaces ---
 interface Task {
   id: string;
   title: string;
@@ -20,51 +10,64 @@ interface Task {
   dueDate: string;
   comments: number;
   assignees: string[];
+  status: string;
 }
 
+interface Column {
+  id: string;
+  title: string;
+  statusCount: number;
+  tasks: Task[];
+  color: string;
+}
 
-const ColumnComponent: React.FC<{ column: Column }> = ({ column }) => {
-  // 1. State to manage the visibility of the new task input
+// --- Props for ColumnComponent ---
+interface ColumnComponentProps {
+  column: Column;
+  onAddTask: (columnId: string, title: string, dueDate: string) => void;
+  // FIX: Add the new onTaskAction prop definition
+  onTaskAction: (taskId: string, action: 'delete' | 'update',updateData: any) => void;
+}
+
+// FIX: Destructure onTaskAction from props
+const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, onTaskAction}) => { 
   const [isCreating, setIsCreating] = useState(false);
-  // 2. State to hold the text for the new task
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  // 3. NEW STATE for the Due Date
   const [newDueDate, setNewDueDate] = useState('');
+  const [isUpdateTask, setIsUpdateTask] = useState(false);
+  const [updatedTaskTitle, setUpdatedTaskTitle] = useState('');
+  const [updatedDueDate, setUpdatedDueDate] = useState('');
+  const [taskId, setTaskId] = useState('');
+
 
   // --- Handlers ---
   const handleCreateClick = () => {
     setIsCreating(true);
-    setNewTaskTitle(''); // Ensure input is clear when opening
-    setNewDueDate('');  // Ensure date is clear when opening
+    setIsUpdateTask(false);
+    setNewTaskTitle('');
+    setNewDueDate('');
   };
 
   const handleCancelClick = () => {
     setIsCreating(false);
-    setNewTaskTitle(''); 
-    setNewDueDate('');  // Clear date on cancel
+    setIsUpdateTask(false);
+    setNewTaskTitle('');
+    setNewDueDate('');
   };
 
   const handleSaveTask = () => {
-    if (newTaskTitle.trim()) {
-      // **TODO: Call the actual function to save the task**
-      if (column.onAddTask) {
-          // Pass the newDueDate in the call
-          column.onAddTask(column.id, newTaskTitle.trim(), newDueDate);
-      } else {
-          console.log(`[Action]: Added task "${newTaskTitle.trim()}" to column: ${column.title}. Due Date: ${newDueDate || 'None'}`);
-      }
+    if (!newTaskTitle.trim()) return;
 
-      // Reset state after saving/adding
-      setIsCreating(false);
-      setNewTaskTitle('');
-      setNewDueDate('');
-    }
+    onAddTask(column.id, newTaskTitle.trim(), newDueDate);
+    setIsCreating(false);
+    setNewTaskTitle('');
+    setNewDueDate('');
   };
 
-  // --- Rendering ---
+  // --- Render ---
   return (
     <div className="flex-shrink-0 w-80 p-3 bg-gray-200 rounded-sm">
-      {/* Column Header (no changes here) */}
+      {/* Column Header */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-600">
           {column.title}{' '}
@@ -75,20 +78,26 @@ const ColumnComponent: React.FC<{ column: Column }> = ({ column }) => {
           <MoreHorizontal className="w-4 h-4 text-gray-500 cursor-pointer hover:text-gray-700" />
         </div>
       </div>
-      
+
       {/* Task List */}
       <div className="min-h-[100px] space-y-3">
-        {column.tasks.map(task => (
-          <TaskCard key={task.id} task={task} />
+        {column.tasks.map((task) => (
+          // FIX: Pass the onTaskAction prop to TaskCard
+          <TaskCard 
+            key={task.id} 
+            task={task} 
+            onTaskAction={onTaskAction} 
+            setIsUpdateTask={setIsUpdateTask}
+            setTaskId={setTaskId}
+            setUpdatedTaskTitle={setUpdatedTaskTitle}
+          /> 
         ))}
 
-        {/* --- 1. Input Field (Shown when isCreating is true) --- */}
+        {/* Input for new task */}
         {isCreating && (
-          <div className="bg-white p-2 rounded-sm shadow border border-blue-400"> {/* Changed border color for better focus */}
-            
-            {/* Task Title Text Area */}
+          <div className="bg-white p-2 rounded-sm shadow border border-blue-400">
             <textarea
-              className="w-full text-sm resize-none border-1 border-gray-300 rounded-sm focus:ring-0 p-2 text-gray-800"
+              className="w-full text-sm resize-none border border-gray-300 rounded-sm focus:ring-0 p-2 text-gray-800"
               rows={2}
               placeholder="What needs to be done?"
               value={newTaskTitle}
@@ -96,34 +105,29 @@ const ColumnComponent: React.FC<{ column: Column }> = ({ column }) => {
               autoFocus
             />
 
-            {/* NEW: Due Date Input Field */}
-            <div className="mt-0 border-t pt-2 border-gray-100">
-              <h6 className='text-xs font-medium'>Due Date</h6>
-              <div className='flex items-center mt-2'>
-
+            <div className="mt-2 border-t pt-2 border-gray-100">
+              <h6 className="text-xs font-medium">Due Date</h6>
+              <div className="flex items-center mt-2">
                 <Calendar className="w-4 h-4 text-gray-500 mr-2" />
                 <input
-                    type="date"
-                    className="w-full text-xs text-gray-700 border-none focus:ring-0 p-2 cursor-pointer"
-                    value={newDueDate}
-                    onChange={(e) => setNewDueDate(e.target.value)}
-                    title="Select due date"
-                    />
-                    </div>
+                  type="date"
+                  className="w-full text-xs text-gray-700 border-none focus:ring-0 p-2 cursor-pointer"
+                  value={newDueDate}
+                  onChange={(e) => setNewDueDate(e.target.value)}
+                  title="Select due date"
+                />
+              </div>
             </div>
-            
-            {/* Save/Cancel Buttons */}
+
             <div className="flex items-center justify-start mt-2 space-x-2 border-t pt-2 border-gray-100">
-              {/* Save/Check Button */}
               <button
                 onClick={handleSaveTask}
                 className="p-1 rounded text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
                 disabled={!newTaskTitle.trim()}
-                title="Create issue"
+                title="Create task"
               >
                 <Check className="w-4 h-4" />
               </button>
-              {/* Cancel/X Button */}
               <button
                 onClick={handleCancelClick}
                 className="p-1 rounded text-gray-700 hover:text-red-500"
@@ -134,10 +138,58 @@ const ColumnComponent: React.FC<{ column: Column }> = ({ column }) => {
             </div>
           </div>
         )}
-        
-        {/* --- 2. Create Button (Shown when isCreating is false) --- */}
+        {/* Input for new task */}
+        {isUpdateTask &&  (
+          <div className="bg-white p-2 rounded-sm shadow border border-blue-400">
+            <textarea
+              className="w-full text-sm resize-none border border-gray-300 rounded-sm focus:ring-0 p-2 text-gray-800"
+              rows={2}
+              placeholder="What needs to be done?"
+              value={updatedTaskTitle}
+              onChange={(e) => setUpdatedTaskTitle(e.target.value)}
+              autoFocus
+            />
+
+            <div className="mt-2 border-t pt-2 border-gray-100">
+              <h6 className="text-xs font-medium">Due Date</h6>
+              <div className="flex items-center mt-2">
+                <Calendar className="w-4 h-4 text-gray-500 mr-2" />
+                <input
+                  type="date"
+                  className="w-full text-xs text-gray-700 border-none focus:ring-0 p-2 cursor-pointer"
+                  value={updatedDueDate}
+                  onChange={(e) => setUpdatedDueDate(e.target.value)}
+                  title="Select due date"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-start mt-2 space-x-2 border-t pt-2 border-gray-100">
+              <button
+                onClick={()=>{
+                  setIsUpdateTask(false)
+                  onTaskAction(taskId, 'update',{updatedTaskTitle,updatedDueDate})
+                }
+                }
+                className="p-1 rounded text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                disabled={!updatedTaskTitle.trim()}
+                title="Create task"
+              >
+                 <Edit className="w-4 h-4 mr-2" />
+              </button>
+              <button
+                onClick={handleCancelClick}
+                className="p-1 rounded text-gray-700 hover:text-red-500"
+                title="Cancel"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {!isCreating && (
-          <button 
+          <button
             onClick={handleCreateClick}
             className="flex items-center text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors mt-2"
           >

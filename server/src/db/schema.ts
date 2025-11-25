@@ -15,7 +15,7 @@ const tasks = pgTable("tasks", {
     projectName: varchar("project_name", { length: 255 }).notNull(),
     status: varchar("status", { length: 50 }).notNull().default("to-do"), 
     created_at: timestamp("created_at").defaultNow(),
-    due_date: timestamp("due_date").notNull(),
+    due_date: varchar("due_date", { length: 20 }).notNull(),
 });
 
 module.exports = {
