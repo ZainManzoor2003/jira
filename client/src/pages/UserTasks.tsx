@@ -1,11 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     Search, Plus, Filter, MoreHorizontal, LayoutDashboard, CheckCircle,
     ChevronDown, List, Clock, FolderOpen, Share2, Star, Menu
 } from 'lucide-react';
+import ColumnComponent from '../components/ColumnComponent';
+import axios from 'axios';
+
+// DND-KIT IMPORTS
+import { DndContext, closestCorners } from '@dnd-kit/core';
+import type { DragEndEvent, UniqueIdentifier } from '@dnd-kit/core';
+// END DND-KIT IMPORTS
 
 // NOTE: Assuming Header is a simple component and does not cause errors
 const Header: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) => (
+// ... (Header component code remains the same)
     <div className="bg-white p-4 border-b border-gray-200 flex items-center">
         <button onClick={toggleSidebar} className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg mr-4">
             <Menu className="w-6 h-6" />
@@ -14,23 +22,20 @@ const Header: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) => (
     </div>
 );
 
-import ColumnComponent from '../components/ColumnComponent';
-import axios from 'axios';
 
 // --- Data Structures ---
-// This interface defines the expected shape of a Task object *within* the React components
 interface Task {
     id: string;
-    title: string; // Use 'title'
+    title: string;
     labels: string[];
-    dueDate: string; // Use 'dueDate'
+    dueDate: string;
     comments: number;
     assignees: string[];
-    status: string;
+    status: string; // Used to determine the column
 }
 
 interface Column {
-    id: string;
+    id: string; // This is the droppable ID
     title: string;
     statusCount: number;
     tasks: Task[];
@@ -39,6 +44,7 @@ interface Column {
 
 // --- Sidebar and NavItem (Corrected) ---
 const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen }) => {
+// ... (Sidebar component code remains the same)
     const NavItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean }> = ({ icon, label, active }) => (
         <div className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${active ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}>
             {icon}
@@ -90,7 +96,6 @@ const UserTasks: React.FC = () => {
     ]);
 
     const getAllTasks = async () => {
-        // NOTE: Add type checking for better safety, assuming it returns an array of task objects
         const res = await axios.get("/task/all");
         return res.data;
     };
@@ -108,16 +113,89 @@ const UserTasks: React.FC = () => {
 
     // Update task status / fields (Unused but kept for completeness)
     const updateTask = async (id: string, data: any) => {
-        const { updatedDueDate, updatedTaskTitle } = data
+        const { updatedStatus } = data
         const payload = {
-            taskName: updatedTaskTitle
-            , projectName: "SCRUM",
-            due_date: updatedDueDate
+            status: updatedStatus // Included status update
         }
-        const res = await axios.put(`/task/update/${id}`, payload);
+        const res = await axios.put(`/task/update/status/${id}`, payload);
         return res.data;
     };
 
+    // Helper to find a column by ID
+    const findColumn = (id: UniqueIdentifier) => {
+        if (id === "to-do" || id === "in-progress" || id === "done") {
+            return id as string;
+        }
+        const taskColumn = columns.find(column => column.tasks.some(task => task.id === id));
+        return taskColumn?.id;
+    }
+
+    // DND Handlers
+    const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+        // Active is the draggable item (TaskCard)
+        // Over is the droppable container (ColumnComponent)
+        if (!over) return;
+
+        const activeTaskId = active.id.toString();
+        const overColumnId = over.id.toString();
+
+        console.log(activeTaskId, overColumnId);
+
+        const activeColumnId = findColumn(activeTaskId);
+
+        if (!activeColumnId) return;
+
+        // Find the task that was moved
+        const movedTask = columns.find(col => col.id === activeColumnId)?.tasks.find(task => task.id === activeTaskId);
+
+        console.log(movedTask)
+        
+        if (!movedTask || activeColumnId === overColumnId) {
+            // Only column reordering is allowed, no internal task sorting for now
+            // If the task is dropped in the same column, do nothing
+            return;
+        }
+
+        // 1. Optimistic UI update
+        setColumns(prevColumns => {
+            const newColumns = prevColumns.map(col => ({ ...col }));
+
+            const sourceColumn = newColumns.find(col => col.id === activeColumnId);
+            const destinationColumn = newColumns.find(col => col.id === overColumnId);
+            
+            if (!sourceColumn || !destinationColumn) return prevColumns;
+
+            // Remove task from source column
+            const taskIndex = sourceColumn.tasks.findIndex(task => task.id === activeTaskId);
+            if (taskIndex !== -1) {
+                const [taskToMove] = sourceColumn.tasks.splice(taskIndex, 1);
+                
+                // Add task to destination column
+                taskToMove.status = overColumnId; // Update local status
+                destinationColumn.tasks.push(taskToMove);
+                
+                // Recalculate counts
+                sourceColumn.statusCount = sourceColumn.tasks.length;
+                destinationColumn.statusCount = destinationColumn.tasks.length;
+            }
+
+            return newColumns;
+        });
+
+        // 2. Persist change to the backend
+        try {
+            await updateTask(activeTaskId, { // keep date
+                updatedStatus: overColumnId,       // update status
+            });
+            // Re-fetch to ensure data is in sync (optional, can be skipped if optimism is high)
+            // await fetchTasks(); 
+        } catch (error) {
+            console.error("Failed to update task status on server", error);
+            // Re-fetch to revert optimistic update on failure
+            await fetchTasks();
+        }
+    };
+    
     // Fetch tasks from DB
     const fetchTasks = async () => {
         const allTasks: any[] = await getAllTasks(); // Assuming response is an array
@@ -129,14 +207,12 @@ const UserTasks: React.FC = () => {
         } as { [key: string]: Task[] };
 
         allTasks.forEach((t: any) => {
-            // FIX: Map the response fields (taskName, due_date) to the internal Task interface fields (title, dueDate)
             const task: Task = {
-                id: t.id,
-                title: t.taskName, // Map from taskName
+                id: t.id.toString(), // Ensure ID is a string for Dnd-Kit's UniqueIdentifier
+                title: t.taskName,
                 labels: [t.projectName],
                 comments: 0,
                 assignees: [],
-                // FIX: Map from due_date and format it
                 dueDate: t.due_date ? new Date(t.due_date).toDateString() : 'No date',
                 status: t.status,
             };
@@ -148,7 +224,7 @@ const UserTasks: React.FC = () => {
         setColumns(prev =>
             prev.map(col => ({
                 ...col,
-                tasks: grouped[col.id] || [], // Ensure a fallback to empty array
+                tasks: grouped[col.id] || [],
                 statusCount: (grouped[col.id] || []).length
             }))
         );
@@ -196,8 +272,8 @@ const UserTasks: React.FC = () => {
                     console.log("No update data provided");
                     return;
                 }
-                console.log(updateData)
-                await updateTask(taskId, updateData);
+                const updatedPayload = { ...updateData, updatedStatus: findColumn(taskId) } // keep status
+                await updateTask(taskId, updatedPayload);
                 console.log(`Task ${taskId} updated successfully`);
                 fetchTasks(); // refresh your task list after update
             }
@@ -219,11 +295,8 @@ const UserTasks: React.FC = () => {
 
     return (
         <div className="flex h-screen bg-gray-100 font-sans">
-
-            {/* Sidebar */}
+            {/* ... (Sidebar and Overlay components) */}
             <Sidebar isOpen={isSidebarOpen} toggle={toggleSidebar} />
-
-            {/* Overlay for mobile */}
             {isSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black opacity-50 z-30 lg:hidden"
@@ -231,14 +304,12 @@ const UserTasks: React.FC = () => {
                 ></div>
             )}
 
-            {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-w-0">
                 <Header toggleSidebar={toggleSidebar} />
 
                 {/* Project Header and Tabs */}
+                {/* ... (Project Header and Tabs) */}
                 <div className="bg-white p-4 border-b border-gray-200">
-
-                    {/* Project Title and Actions */}
                     <div className="flex justify-between items-center mb-4">
                         <h1 className="text-xl font-bold text-gray-900 flex items-center">
                             My Scrum Project
@@ -251,8 +322,6 @@ const UserTasks: React.FC = () => {
                             <MoreHorizontal className="w-5 h-5 cursor-pointer hover:text-gray-800" />
                         </div>
                     </div>
-
-                    {/* Tabs Navigation */}
                     <div className="flex space-x-6 overflow-x-auto whitespace-nowrap">
                         {tabs.map((tab, index) => (
                             <div
@@ -270,9 +339,9 @@ const UserTasks: React.FC = () => {
                 </div>
 
                 {/* Board Controls / Actions */}
+                {/* ... (Board Controls) */}
                 <div className="p-4 bg-white border-b border-gray-200 flex flex-wrap gap-3 justify-between items-center">
                     <div className="flex flex-wrap gap-3 items-center">
-                        {/* Search Board */}
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
@@ -282,7 +351,6 @@ const UserTasks: React.FC = () => {
                             />
                         </div>
 
-                        {/* Filter */}
                         <button className="flex items-center text-sm font-medium text-gray-700 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors border border-gray-300">
                             <Filter className="w-4 h-4 mr-1" />
                             Filter
@@ -290,39 +358,42 @@ const UserTasks: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-3 items-center">
-                        {/* Complete Sprint */}
                         <button className="flex items-center text-sm font-medium text-white bg-blue-600 px-4 py-2 hover:bg-blue-700 transition-colors cursor-pointer">
                             Complete sprint
                             <CheckCircle className="w-4 h-4 ml-1" />
                         </button>
 
-                        {/* Group */}
                         <button className="flex items-center text-sm font-medium text-gray-700 bg-white px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors border border-gray-300">
                             Group
                             <ChevronDown className="w-4 h-4 ml-1" />
                         </button>
 
-                        {/* More options */}
                         <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300">
                             <MoreHorizontal className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
 
-                {/* Kanban Board Container */}
-
+                {/* Kanban Board Container - WRAPPED WITH DNDCONTEXT */}
                 <main className="flex-1 overflow-x-auto p-4 bg-gray-100">
-                    <div className="flex space-x-4 min-h-inherit">
-                        {columns.map(col => (
-                            <ColumnComponent
-                                key={col.id}
-                                // FIX: Pass column object and handleAddTask prop separately
-                                column={col}
-                                onAddTask={handleAddTask}
-                                onTaskAction={handleTaskAction}
-                            />
-                        ))}
-                    </div>
+                    <DndContext
+                        // sensors={[]} // Keep empty for simpler implementation, focusing on manual drag
+                        collisionDetection={closestCorners}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <div className="flex space-x-4 min-h-inherit">
+                            {columns.map(col => (
+                                <ColumnComponent
+                                    key={col.id}
+                                    column={col}
+                                    onAddTask={handleAddTask}
+                                    onTaskAction={handleTaskAction}
+                                    // Pass task IDs for Droppable to know its children
+                                    taskIds={col.tasks.map(t => t.id)}
+                                />
+                            ))}
+                        </div>
+                    </DndContext>
                 </main>
             </div>
         </div>

@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, MoreHorizontal, Check, X, Calendar, Edit} from 'lucide-react';
+
+// DND-KIT IMPORTS
+import { useDroppable } from '@dnd-kit/core';
+import { useDraggable } from '@dnd-kit/core';
+// END DND-KIT IMPORTS
+
 import TaskCard from './TaskCard';
 
 // --- Interfaces ---
@@ -21,38 +27,58 @@ interface Column {
   color: string;
 }
 
+interface TaskCardProps{
+    task: Task
+    onTaskAction: (taskId: string, action: 'delete' | 'update', updateData: any) => void
+    setIsUpdateTask: React.Dispatch<React.SetStateAction<boolean>>
+    setTaskId: React.Dispatch<React.SetStateAction<string>>
+    setUpdatedTaskTitle: React.Dispatch<React.SetStateAction<string>>
+}
+
 // --- Props for ColumnComponent ---
 interface ColumnComponentProps {
   column: Column;
   onAddTask: (columnId: string, title: string, dueDate: string) => void;
-  // FIX: Add the new onTaskAction prop definition
   onTaskAction: (taskId: string, action: 'delete' | 'update',updateData: any) => void;
+  taskIds: string[]; // Prop to pass the list of task IDs
 }
 
-// FIX: Destructure onTaskAction from props
-const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, onTaskAction}) => { 
+const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, onTaskAction, taskIds }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newDueDate, setNewDueDate] = useState('');
+  const [newDueDate, setNewTaskDueDate] = useState('');
   const [isUpdateTask, setIsUpdateTask] = useState(false);
   const [updatedTaskTitle, setUpdatedTaskTitle] = useState('');
   const [updatedDueDate, setUpdatedDueDate] = useState('');
   const [taskId, setTaskId] = useState('');
+    
+  // Make the column droppable
+  const { setNodeRef, isOver } = useDroppable({
+    id: column.id, // The unique droppable ID (to-do, in-progress, done)
+    data: {
+      type: 'Column',
+      tasks: taskIds,
+    }
+  });
 
+  // Highlight the droppable area when a draggable item is over it
+  const droppableStyle = {
+    backgroundColor: isOver ? 'rgb(220 252 231)' : 'rgb(229 231 235)', // bg-green-100 or bg-gray-200
+  };
 
   // --- Handlers ---
   const handleCreateClick = () => {
     setIsCreating(true);
     setIsUpdateTask(false);
     setNewTaskTitle('');
-    setNewDueDate('');
+    setUpdatedDueDate('');
   };
 
   const handleCancelClick = () => {
     setIsCreating(false);
     setIsUpdateTask(false);
     setNewTaskTitle('');
-    setNewDueDate('');
+    setUpdatedDueDate('');
   };
 
   const handleSaveTask = () => {
@@ -61,12 +87,17 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
     onAddTask(column.id, newTaskTitle.trim(), newDueDate);
     setIsCreating(false);
     setNewTaskTitle('');
-    setNewDueDate('');
+    setUpdatedDueDate('');
   };
 
   // --- Render ---
   return (
-    <div className="flex-shrink-0 w-80 p-3 bg-gray-200 rounded-sm">
+    // Apply ref and style for droppable
+    <div 
+        ref={setNodeRef} 
+        style={droppableStyle} 
+        className="flex-shrink-0 w-80 p-3 rounded-sm transition-colors duration-200"
+    >
       {/* Column Header */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-600">
@@ -82,8 +113,8 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
       {/* Task List */}
       <div className="min-h-[100px] space-y-3">
         {column.tasks.map((task) => (
-          // FIX: Pass the onTaskAction prop to TaskCard
-          <TaskCard 
+          // Use a new DraggableTaskCard wrapper component
+          <TaskCardWrapper
             key={task.id} 
             task={task} 
             onTaskAction={onTaskAction} 
@@ -93,6 +124,7 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
           /> 
         ))}
 
+        {/* ... (Input for new task and update task) */}
         {/* Input for new task */}
         {isCreating && (
           <div className="bg-white p-2 rounded-sm shadow border border-blue-400">
@@ -113,7 +145,7 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
                   type="date"
                   className="w-full text-xs text-gray-700 border-none focus:ring-0 p-2 cursor-pointer"
                   value={newDueDate}
-                  onChange={(e) => setNewDueDate(e.target.value)}
+                  onChange={(e) => setNewTaskDueDate(e.target.value)}
                   title="Select due date"
                 />
               </div>
@@ -138,7 +170,7 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
             </div>
           </div>
         )}
-        {/* Input for new task */}
+        {/* Input for update task */}
         {isUpdateTask &&  (
           <div className="bg-white p-2 rounded-sm shadow border border-blue-400">
             <textarea
@@ -173,7 +205,7 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
                 }
                 className="p-1 rounded text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
                 disabled={!updatedTaskTitle.trim()}
-                title="Create task"
+                title="Update task"
               >
                  <Edit className="w-4 h-4 mr-2" />
               </button>
@@ -203,3 +235,36 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
 };
 
 export default ColumnComponent;
+
+
+// New wrapper component for the draggable task card
+const TaskCardWrapper: React.FC<TaskCardProps> = (props) => {
+    // Make the TaskCard draggable
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({
+        id: props.task.id,
+        data: {
+            type: 'Task',
+            task: props.task,
+        }
+    });
+
+    const style = transform ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: 100, // bring to front while dragging
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        cursor: 'grabbing',
+    } : {
+        cursor: 'grab',
+    };
+
+    return (
+        <div 
+            ref={setNodeRef} 
+            style={style} 
+            {...listeners} 
+            {...attributes}
+        >
+            <TaskCard {...props} />
+        </div>
+    );
+};

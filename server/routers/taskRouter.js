@@ -11,6 +11,8 @@ router.post("/add", taskController.addTask);
 
 router.put("/update/:id", taskController.updateTask);
 
+router.put("/update/status/:id", taskController.updateTaskStatus);
+
 router.delete("/delete/:id", taskController.deleteTask);
 
 module.exports = router;

@@ -58,6 +58,26 @@ const updateTask = async (req, res) => {
   }
 };
 
+const updateTaskStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status} = req.body;
+
+    const updated = await db
+      .update(tasks)
+      .set({
+        status
+      })
+      .where(eq(tasks.id, id))
+      .returning();
+
+    res.json(updated[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Unable to update task" });
+  }
+};
+
 const deleteTask = async (req, res) => {
   try {
     const { id } = req.params; // get task id from URL
@@ -82,5 +102,6 @@ module.exports = {
   getTasks,
   addTask,
   updateTask,
-  deleteTask
+  deleteTask,
+  updateTaskStatus
 };

@@ -3,7 +3,6 @@ import { MoreHorizontal, Calendar, MessageSquare, Trash2, Edit } from 'lucide-re
 
 
 // --- Data Structures ---
-// The Task interface matches the requirements from the parent components.
 interface Task {
   id: string; 
   title: string; 
@@ -17,7 +16,6 @@ interface Task {
 // --- Props for TaskCard ---
 interface TaskCardProps {
     task: Task;
-    // New prop to handle actions (Delete/Update)
     onTaskAction: (taskId: string, action: 'delete' | 'update', updateData: any) => void;
     setIsUpdateTask: React.Dispatch<React.SetStateAction<boolean>>
     setTaskId: React.Dispatch<React.SetStateAction<string>>
@@ -36,7 +34,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction,setIsUpdateTask,
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const toggleMenu = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent the card click event from firing
+        e.stopPropagation(); // Prevent card events
         setIsMenuOpen(prev => !prev);
     };
 
@@ -55,15 +53,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction,setIsUpdateTask,
     };
 
     return (
-        // Add a click handler to close the menu when clicking anywhere on the card (but not the menu button)
+        // Remove the onClick={() => { ... }} handler here as the drag wrapper manages click/drag
         <div 
-            className="bg-white p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 cursor-pointer mb-3 relative" // Added 'relative' for dropdown positioning
-            onClick={() => {
-                // If the card itself is clicked, you might want to open a modal for full task view
-                // For now, let's just ensure the menu is closed if opened
-                if (isMenuOpen) setIsMenuOpen(false);
-                // console.log(`Task ${task.id} clicked for details.`);
-            }}
+            className="bg-white p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 relative" 
         >
             <p className="text-sm font-medium text-gray-800 mb-2">{task.title}</p>
             
