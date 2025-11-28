@@ -89,7 +89,14 @@ const UserTasks: React.FC = () => {
     axios.defaults.baseURL = 'http://localhost:3001'
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+
     const [columns, setColumns] = useState<Column[]>([
+        { id: "to-do", title: "TO DO", statusCount: 0, color: "text-red-500", tasks: [] },
+        { id: "in-progress", title: "IN PROGRESS", statusCount: 0, color: "text-blue-500", tasks: [] },
+        { id: "done", title: "DONE", statusCount: 0, color: "text-green-500", tasks: [] },
+    ]);
+    const [filterColumns, setFilterColumns] = useState<Column[]>([
         { id: "to-do", title: "TO DO", statusCount: 0, color: "text-red-500", tasks: [] },
         { id: "in-progress", title: "IN PROGRESS", statusCount: 0, color: "text-blue-500", tasks: [] },
         { id: "done", title: "DONE", statusCount: 0, color: "text-green-500", tasks: [] },
@@ -120,7 +127,7 @@ const UserTasks: React.FC = () => {
         if (data.updatedDueDate) {
             payload.due_date = data.updatedDueDate;
         }
-        payload.projectName='SCRUM'
+        payload.projectName = 'SCRUM'
 
         const res = await axios.put(`/task/update/${taskId}`, payload, {
             withCredentials: true, // sends cookies if your API uses JWT in cookies
@@ -135,7 +142,7 @@ const UserTasks: React.FC = () => {
         const payload = {
             status: updatedStatus // Included status update
         }
-        const res = await axios.put(`/task/update/status/${id}`, payload,{withCredentials: true});
+        const res = await axios.put(`/task/update/status/${id}`, payload, { withCredentials: true });
         return res.data;
     };
 
@@ -213,6 +220,31 @@ const UserTasks: React.FC = () => {
 
             return newColumns;
         });
+        // 1. Optimistic UI update
+        setFilterColumns(prevColumns => {
+            const newColumns = prevColumns.map(col => ({ ...col }));
+
+            const sourceColumn = newColumns.find(col => col.id === activeColumnId);
+            const destinationColumn = newColumns.find(col => col.id === overColumnId);
+
+            if (!sourceColumn || !destinationColumn) return prevColumns;
+
+            // Remove task from source column
+            const taskIndex = sourceColumn.tasks.findIndex(task => task.id === activeTaskId);
+            if (taskIndex !== -1) {
+                const [taskToMove] = sourceColumn.tasks.splice(taskIndex, 1);
+
+                // Add task to destination column
+                taskToMove.status = overColumnId; // Update local status
+                destinationColumn.tasks.push(taskToMove);
+
+                // Recalculate counts
+                sourceColumn.statusCount = sourceColumn.tasks.length;
+                destinationColumn.statusCount = destinationColumn.tasks.length;
+            }
+
+            return newColumns;
+        });
 
         // 2. Persist change to the backend
         try {
@@ -260,6 +292,13 @@ const UserTasks: React.FC = () => {
                 statusCount: (grouped[col.id] || []).length
             }))
         );
+        setFilterColumns(prev =>
+            prev.map(col => ({
+                ...col,
+                tasks: grouped[col.id] || [],
+                statusCount: (grouped[col.id] || []).length
+            }))
+        );
     };
 
     useEffect(() => {
@@ -285,7 +324,7 @@ const UserTasks: React.FC = () => {
 
     const deleteTask = async (taskId: string) => {
         try {
-            const res = await axios.delete(`/task/delete/${taskId}`,{
+            const res = await axios.delete(`/task/delete/${taskId}`, {
                 withCredentials: true
             });
             console.log("Task deleted:", res.data);
@@ -327,6 +366,22 @@ const UserTasks: React.FC = () => {
         }
     };
 
+    const filterTasks = (value: string) => {
+        setSearchTerm(value);
+        console.log(value)
+        if (value === '') {
+            setFilterColumns(columns)
+        }
+        else {
+            const newColumns = columns.map(col => ({
+                ...col,
+                tasks: col.tasks.filter(task => task.title.toLowerCase().includes(value.toLowerCase())),
+                statusCount: col.tasks.filter(task => task.title.toLowerCase().includes(value.toLowerCase())).length
+            }))
+
+            setFilterColumns(newColumns)
+        }
+    }
     const tabs = [
         { name: 'Summary' },
         { name: 'Backlog' },
@@ -393,6 +448,7 @@ const UserTasks: React.FC = () => {
                                 type="text"
                                 placeholder="Search board"
                                 className="w-48 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                onChange={(e) => filterTasks(e.target.value)}
                             />
                         </div>
 
@@ -427,7 +483,7 @@ const UserTasks: React.FC = () => {
                         onDragEnd={handleDragEnd}
                     >
                         <div className="flex space-x-4 min-h-inherit">
-                            {columns.map(col => (
+                            {filterColumns.map(col => (
                                 <ColumnComponent
                                     key={col.id}
                                     column={col}
