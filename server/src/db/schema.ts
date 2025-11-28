@@ -18,7 +18,16 @@ const tasks = pgTable("tasks", {
     due_date: varchar("due_date", { length: 20 }).notNull(),
 });
 
+const comments = pgTable("comments", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    task_id: uuid("task_id").notNull(),
+    user_id: uuid("user_id").notNull(),
+    comment: varchar("comment", { length: 255 }).notNull(),
+    created_at: timestamp("created_at").defaultNow(),
+})
+
 module.exports = {
     users,
     tasks,
+    comments
 };

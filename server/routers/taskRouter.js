@@ -7,12 +7,18 @@ const taskController = require('../controllers/taskController');
 
 router.get("/all", taskController.getTasks);
 
-router.post("/add", taskController.addTask);
+router.post("/add", authMiddleware, taskController.addTask);
 
-router.put("/update/:id", taskController.updateTask);
+router.put("/update/:id", authMiddleware, taskController.updateTask);
 
-router.put("/update/status/:id", taskController.updateTaskStatus);
+router.put("/update/status/:id", authMiddleware, taskController.updateTaskStatus);
 
-router.delete("/delete/:id", taskController.deleteTask);
+router.delete("/delete/:id", authMiddleware, taskController.deleteTask);
+
+router.post("/comment/:taskId", authMiddleware, taskController.commentTask);
+
+router.get("/comment/all", taskController.getComments);
+
+router.get("/comment/:taskId", authMiddleware ,taskController.getCommentsByTask);
 
 module.exports = router;

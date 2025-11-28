@@ -13,7 +13,7 @@ import type { DragEndEvent, UniqueIdentifier } from '@dnd-kit/core';
 
 // NOTE: Assuming Header is a simple component and does not cause errors
 const Header: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) => (
-// ... (Header component code remains the same)
+    // ... (Header component code remains the same)
     <div className="bg-white p-4 border-b border-gray-200 flex items-center">
         <button onClick={toggleSidebar} className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg mr-4">
             <Menu className="w-6 h-6" />
@@ -44,7 +44,7 @@ interface Column {
 
 // --- Sidebar and NavItem (Corrected) ---
 const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen }) => {
-// ... (Sidebar component code remains the same)
+    // ... (Sidebar component code remains the same)
     const NavItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean }> = ({ icon, label, active }) => (
         <div className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${active ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}>
             {icon}
@@ -111,13 +111,45 @@ const UserTasks: React.FC = () => {
         return res.data;
     };
 
+    const updateTask = async (taskId: string, data: any) => {
+        const payload: any = {};
+
+        if (data.updatedTaskTitle) {
+            payload.taskName = data.updatedTaskTitle;
+        }
+        if (data.updatedDueDate) {
+            payload.due_date = data.updatedDueDate;
+        }
+        payload.projectName='SCRUM'
+
+        const res = await axios.put(`/task/update/${taskId}`, payload, {
+            withCredentials: true, // sends cookies if your API uses JWT in cookies
+        });
+
+        return res.data;
+    };
+
     // Update task status / fields (Unused but kept for completeness)
-    const updateTask = async (id: string, data: any) => {
+    const updateTaskStatus = async (id: string, data: any) => {
         const { updatedStatus } = data
         const payload = {
             status: updatedStatus // Included status update
         }
-        const res = await axios.put(`/task/update/status/${id}`, payload);
+        const res = await axios.put(`/task/update/status/${id}`, payload,{withCredentials: true});
+        return res.data;
+    };
+
+    const commentTask = async (taskId: string, comment: string) => {
+        if (!comment || !comment.trim()) {
+            throw new Error("Comment cannot be empty");
+        }
+
+        const payload = { comment };
+
+        const res = await axios.post(`/task/comment/${taskId}`, payload, {
+            withCredentials: true, // ensures cookies (JWT) are sent
+        });
+
         return res.data;
     };
 
@@ -149,7 +181,7 @@ const UserTasks: React.FC = () => {
         const movedTask = columns.find(col => col.id === activeColumnId)?.tasks.find(task => task.id === activeTaskId);
 
         console.log(movedTask)
-        
+
         if (!movedTask || activeColumnId === overColumnId) {
             // Only column reordering is allowed, no internal task sorting for now
             // If the task is dropped in the same column, do nothing
@@ -162,18 +194,18 @@ const UserTasks: React.FC = () => {
 
             const sourceColumn = newColumns.find(col => col.id === activeColumnId);
             const destinationColumn = newColumns.find(col => col.id === overColumnId);
-            
+
             if (!sourceColumn || !destinationColumn) return prevColumns;
 
             // Remove task from source column
             const taskIndex = sourceColumn.tasks.findIndex(task => task.id === activeTaskId);
             if (taskIndex !== -1) {
                 const [taskToMove] = sourceColumn.tasks.splice(taskIndex, 1);
-                
+
                 // Add task to destination column
                 taskToMove.status = overColumnId; // Update local status
                 destinationColumn.tasks.push(taskToMove);
-                
+
                 // Recalculate counts
                 sourceColumn.statusCount = sourceColumn.tasks.length;
                 destinationColumn.statusCount = destinationColumn.tasks.length;
@@ -184,7 +216,7 @@ const UserTasks: React.FC = () => {
 
         // 2. Persist change to the backend
         try {
-            await updateTask(activeTaskId, { // keep date
+            await updateTaskStatus(activeTaskId, { // keep date
                 updatedStatus: overColumnId,       // update status
             });
             // Re-fetch to ensure data is in sync (optional, can be skipped if optimism is high)
@@ -195,7 +227,7 @@ const UserTasks: React.FC = () => {
             await fetchTasks();
         }
     };
-    
+
     // Fetch tasks from DB
     const fetchTasks = async () => {
         const allTasks: any[] = await getAllTasks(); // Assuming response is an array
@@ -253,7 +285,9 @@ const UserTasks: React.FC = () => {
 
     const deleteTask = async (taskId: string) => {
         try {
-            const res = await axios.delete(`/task/delete/${taskId}`);
+            const res = await axios.delete(`/task/delete/${taskId}`,{
+                withCredentials: true
+            });
             console.log("Task deleted:", res.data);
             return res.data;
         } catch (error) {
@@ -261,21 +295,32 @@ const UserTasks: React.FC = () => {
             throw error;
         }
     };
-    const handleTaskAction = async (taskId: string, action: 'delete' | 'update', updateData: any) => {
+    const handleTaskAction = async (taskId: string, action: 'delete' | 'update' | 'comment', data: any) => {
         try {
             if (action === 'delete') {
                 await deleteTask(taskId);
                 console.log(`Task ${taskId} deleted successfully`);
                 fetchTasks(); // refresh your task list after deletion
             } else if (action === 'update') {
-                if (!updateData) {
+                if (!data) {
                     console.log("No update data provided");
                     return;
                 }
-                const updatedPayload = { ...updateData, updatedStatus: findColumn(taskId) } // keep status
-                await updateTask(taskId, updatedPayload);
+                console.log(data)
+                await updateTask(taskId, data);
                 console.log(`Task ${taskId} updated successfully`);
                 fetchTasks(); // refresh your task list after update
+            }
+            else if (action === 'comment') {
+                if (!data) {
+                    console.log("No comment data provided");
+                    return;
+                }
+                const { comment } = data;
+
+                await commentTask(taskId, comment);
+                console.log(`Task ${taskId} commented successfully`);
+                fetchTasks(); // refresh your task list after comment
             }
         } catch (error) {
             console.error(`Error performing ${action} on task ${taskId}:`, error);

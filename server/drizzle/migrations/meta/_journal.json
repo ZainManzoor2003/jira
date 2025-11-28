@@ -71,6 +71,13 @@
       "when": 1764067851120,
       "tag": "0009_jazzy_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1764307937114,
+      "tag": "0010_useful_goblin_queen",
+      "breakpoints": true
     }
   ]
 }

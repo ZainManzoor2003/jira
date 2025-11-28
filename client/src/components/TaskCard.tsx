@@ -1,16 +1,16 @@
 import React, { useState } from "react";
-import { MoreHorizontal, Calendar, MessageSquare, Trash2, Edit } from 'lucide-react';
+import { MoreHorizontal, Calendar, MessageSquare, Trash2, Edit, MessagesSquare } from 'lucide-react';
 
 
 // --- Data Structures ---
 interface Task {
-  id: string; 
-  title: string; 
-  labels: string[]; 
-  dueDate: string;
-  comments: number; 
-  assignees: string[]; 
-  status: string; 
+    id: string;
+    title: string;
+    labels: string[];
+    dueDate: string;
+    comments: number;
+    assignees: string[];
+    status: string;
 }
 
 // --- Props for TaskCard ---
@@ -18,19 +18,21 @@ interface TaskCardProps {
     task: Task;
     onTaskAction: (taskId: string, action: 'delete' | 'update', updateData: any) => void;
     setIsUpdateTask: React.Dispatch<React.SetStateAction<boolean>>
+    setIsComment: React.Dispatch<React.SetStateAction<boolean>>
     setTaskId: React.Dispatch<React.SetStateAction<string>>
     setUpdatedTaskTitle: React.Dispatch<React.SetStateAction<string>>
+    setUpdatedDueDate: React.Dispatch<React.SetStateAction<string>>
 }
 
 
 const UserAvatar: React.FC<{ initial: string }> = ({ initial }) => (
-  <div className="flex-shrink-0 w-6 h-6 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center text-xs font-semibold border border-gray-300 shadow-sm">
-    {initial}
-  </div>
+    <div className="flex-shrink-0 w-6 h-6 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center text-xs font-semibold border border-gray-300 shadow-sm">
+        {initial}
+    </div>
 );
 
 // TaskCard Component with Dropdown Logic
-const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction,setIsUpdateTask,setTaskId,setUpdatedTaskTitle}) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask, setIsComment, setTaskId, setUpdatedTaskTitle, setUpdatedDueDate }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const toggleMenu = (e: React.MouseEvent) => {
@@ -40,7 +42,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction,setIsUpdateTask,
 
     const handleDelete = (e: React.MouseEvent) => {
         e.stopPropagation();
-        onTaskAction(task.id, 'delete',null);
+        onTaskAction(task.id, 'delete', null);
         setIsMenuOpen(false);
     };
 
@@ -49,16 +51,18 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction,setIsUpdateTask,
         setIsUpdateTask(true);
         setTaskId(task.id)
         setUpdatedTaskTitle(task.title)
+        const dateValue = new Date(task.dueDate).toISOString().split('T')[0];
+        setUpdatedDueDate(dateValue)
         setIsMenuOpen(false);
     };
 
     return (
         // Remove the onClick={() => { ... }} handler here as the drag wrapper manages click/drag
-        <div 
-            className="bg-white p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 relative" 
+        <div
+            className="bg-white p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 relative"
         >
             <p className="text-sm font-medium text-gray-800 mb-2">{task.title}</p>
-            
+
             {/* Labels */}
             <div className="flex flex-wrap gap-1 mb-2">
                 {task.labels.map(label => (
@@ -73,7 +77,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction,setIsUpdateTask,
                     <Calendar className="w-3 h-3" />
                     <span>{task.dueDate}</span>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                     {/* Comments */}
                     {task.comments > 0 && (
@@ -82,7 +86,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction,setIsUpdateTask,
                             <span>{task.comments}</span>
                         </div>
                     )}
-                    
+
                     {/* Assignees */}
                     <div className="flex -space-x-1">
                         {task.assignees.map((a, index) => (
@@ -92,23 +96,27 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction,setIsUpdateTask,
 
                     {/* MoreHorizontal Button and Dropdown Container */}
                     <div className="relative">
-                        <MoreHorizontal 
-                            className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer" 
-                            onClick={toggleMenu}
+                        <MoreHorizontal
+                            className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+                            onDoubleClick={toggleMenu}
+                        />
+                        <MessagesSquare
+                            className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+                            onDoubleClick={() => { setIsComment(true); setTaskId(task.id); setIsMenuOpen(false); }}
                         />
 
                         {/* Dropdown Menu */}
                         {isMenuOpen && (
                             <div className="absolute right-0 top-6 w-32 bg-white rounded-lg shadow-xl z-10 border border-gray-100 origin-top-right transform transition-all duration-200 animate-in fade-in zoom-in-95">
-                                <button 
-                                    onClick={handleUpdate}
+                                <button
+                                    onDoubleClick={handleUpdate}
                                     className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg"
                                 >
                                     <Edit className="w-4 h-4 mr-2" />
                                     Update
                                 </button>
-                                <button 
-                                    onClick={handleDelete}
+                                <button
+                                    onDoubleClick={handleDelete}
                                     className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg"
                                 >
                                     <Trash2 className="w-4 h-4 mr-2" />

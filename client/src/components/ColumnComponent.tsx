@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, MoreHorizontal, Check, X, Calendar, Edit} from 'lucide-react';
+import { Plus, MoreHorizontal, Check, X, Calendar, Edit } from 'lucide-react';
 
 // DND-KIT IMPORTS
 import { useDroppable } from '@dnd-kit/core';
@@ -7,6 +7,7 @@ import { useDraggable } from '@dnd-kit/core';
 // END DND-KIT IMPORTS
 
 import TaskCard from './TaskCard';
+import CommentsModal from '../modals/CommentModal';
 
 // --- Interfaces ---
 interface Task {
@@ -27,19 +28,21 @@ interface Column {
   color: string;
 }
 
-interface TaskCardProps{
-    task: Task
-    onTaskAction: (taskId: string, action: 'delete' | 'update', updateData: any) => void
-    setIsUpdateTask: React.Dispatch<React.SetStateAction<boolean>>
-    setTaskId: React.Dispatch<React.SetStateAction<string>>
-    setUpdatedTaskTitle: React.Dispatch<React.SetStateAction<string>>
+interface TaskCardProps {
+  task: Task
+  onTaskAction: (taskId: string, action: 'delete' | 'update' | 'comment', updateData: any) => void
+  setIsUpdateTask: React.Dispatch<React.SetStateAction<boolean>>
+  setIsComment: React.Dispatch<React.SetStateAction<boolean>>
+  setTaskId: React.Dispatch<React.SetStateAction<string>>
+  setUpdatedTaskTitle: React.Dispatch<React.SetStateAction<string>>
+  setUpdatedDueDate: React.Dispatch<React.SetStateAction<string>>
 }
 
 // --- Props for ColumnComponent ---
 interface ColumnComponentProps {
   column: Column;
   onAddTask: (columnId: string, title: string, dueDate: string) => void;
-  onTaskAction: (taskId: string, action: 'delete' | 'update',updateData: any) => void;
+  onTaskAction: (taskId: string, action: 'delete' | 'update' | 'comment', updateData: any) => void;
   taskIds: string[]; // Prop to pass the list of task IDs
 }
 
@@ -48,10 +51,13 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newDueDate, setNewTaskDueDate] = useState('');
   const [isUpdateTask, setIsUpdateTask] = useState(false);
+  const [isCommentTask, setIsComment] = useState(false);
   const [updatedTaskTitle, setUpdatedTaskTitle] = useState('');
   const [updatedDueDate, setUpdatedDueDate] = useState('');
+  const [comment, setComment] = useState('');
   const [taskId, setTaskId] = useState('');
-    
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Make the column droppable
   const { setNodeRef, isOver } = useDroppable({
     id: column.id, // The unique droppable ID (to-do, in-progress, done)
@@ -70,15 +76,15 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
   const handleCreateClick = () => {
     setIsCreating(true);
     setIsUpdateTask(false);
+    setIsComment(false);
     setNewTaskTitle('');
     setUpdatedDueDate('');
   };
 
   const handleCancelClick = () => {
-    setIsCreating(false);
-    setIsUpdateTask(false);
     setNewTaskTitle('');
     setUpdatedDueDate('');
+    setComment('');
   };
 
   const handleSaveTask = () => {
@@ -93,10 +99,10 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
   // --- Render ---
   return (
     // Apply ref and style for droppable
-    <div 
-        ref={setNodeRef} 
-        style={droppableStyle} 
-        className="flex-shrink-0 w-80 p-3 rounded-sm transition-colors duration-200"
+    <div
+      ref={setNodeRef}
+      style={droppableStyle}
+      className="flex-shrink-0 w-80 p-3 rounded-sm transition-colors duration-200"
     >
       {/* Column Header */}
       <div className="flex items-center justify-between mb-3">
@@ -115,13 +121,15 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
         {column.tasks.map((task) => (
           // Use a new DraggableTaskCard wrapper component
           <TaskCardWrapper
-            key={task.id} 
-            task={task} 
-            onTaskAction={onTaskAction} 
+            key={task.id}
+            task={task}
+            onTaskAction={onTaskAction}
             setIsUpdateTask={setIsUpdateTask}
+            setIsComment={setIsComment}
             setTaskId={setTaskId}
             setUpdatedTaskTitle={setUpdatedTaskTitle}
-          /> 
+            setUpdatedDueDate={setUpdatedDueDate}
+          />
         ))}
 
         {/* ... (Input for new task and update task) */}
@@ -161,7 +169,10 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
                 <Check className="w-4 h-4" />
               </button>
               <button
-                onClick={handleCancelClick}
+                onClick={() => {
+                  handleCancelClick
+                  setIsCreating(false);
+                }}
                 className="p-1 rounded text-gray-700 hover:text-red-500"
                 title="Cancel"
               >
@@ -171,12 +182,12 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
           </div>
         )}
         {/* Input for update task */}
-        {isUpdateTask &&  (
+        {isUpdateTask && (
           <div className="bg-white p-2 rounded-sm shadow border border-blue-400">
             <textarea
               className="w-full text-sm resize-none border border-gray-300 rounded-sm focus:ring-0 p-2 text-gray-800"
               rows={2}
-              placeholder="What needs to be done?"
+              placeholder="Update Task"
               value={updatedTaskTitle}
               onChange={(e) => setUpdatedTaskTitle(e.target.value)}
               autoFocus
@@ -198,23 +209,71 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
 
             <div className="flex items-center justify-start mt-2 space-x-2 border-t pt-2 border-gray-100">
               <button
-                onClick={()=>{
+                onClick={() => {
                   setIsUpdateTask(false)
-                  onTaskAction(taskId, 'update',{updatedTaskTitle,updatedDueDate})
+                  onTaskAction(taskId, 'update', { updatedTaskTitle, updatedDueDate })
                 }
                 }
                 className="p-1 rounded text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
                 disabled={!updatedTaskTitle.trim()}
                 title="Update task"
               >
-                 <Edit className="w-4 h-4 mr-2" />
+                <Edit className="w-4 h-4" />
               </button>
               <button
-                onClick={handleCancelClick}
+                onClick={() => {
+                  handleCancelClick
+                  setIsUpdateTask(false);
+                }}
                 className="p-1 rounded text-gray-700 hover:text-red-500"
                 title="Cancel"
               >
                 <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+        {isCommentTask && (
+          <div className="bg-white p-2 rounded-sm shadow border border-blue-400">
+            <textarea
+              className="w-full text-sm resize-none border border-gray-300 rounded-sm focus:ring-0 p-2 text-gray-800"
+              rows={2}
+              placeholder="Comment Task"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              autoFocus
+            />
+
+            <div className="flex items-center justify-start mt-2 space-x-2 border-t pt-2 border-gray-100">
+              <button
+                onClick={() => {
+                  setIsComment(false)
+                  setComment('')
+                  onTaskAction(taskId, 'comment', { comment })
+                }
+                }
+                className="p-1 rounded text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                disabled={!comment.trim()}
+                title="Comment task"
+              >
+                <Check className="w-4 h-4 mr-2" />
+              </button>
+              <button
+                onClick={() => {
+                  handleCancelClick
+                  setIsComment(false);
+                }}
+                className="p-1 rounded text-gray-700 hover:text-red-500"
+                title="Cancel"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                title="View all task comments"
+              >
+                View all
               </button>
             </div>
           </div>
@@ -229,6 +288,7 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
             Create
           </button>
         )}
+        <CommentsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} taskId={taskId}/>
       </div>
     </div>
   );
@@ -239,32 +299,32 @@ export default ColumnComponent;
 
 // New wrapper component for the draggable task card
 const TaskCardWrapper: React.FC<TaskCardProps> = (props) => {
-    // Make the TaskCard draggable
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({
-        id: props.task.id,
-        data: {
-            type: 'Task',
-            task: props.task,
-        }
-    });
+  // Make the TaskCard draggable
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: props.task.id,
+    data: {
+      type: 'Task',
+      task: props.task,
+    }
+  });
 
-    const style = transform ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        zIndex: 100, // bring to front while dragging
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        cursor: 'grabbing',
-    } : {
-        cursor: 'grab',
-    };
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 100, // bring to front while dragging
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    cursor: 'grabbing',
+  } : {
+    cursor: 'grab',
+  };
 
-    return (
-        <div 
-            ref={setNodeRef} 
-            style={style} 
-            {...listeners} 
-            {...attributes}
-        >
-            <TaskCard {...props} />
-        </div>
-    );
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+    >
+      <TaskCard {...props} />
+    </div>
+  );
 };

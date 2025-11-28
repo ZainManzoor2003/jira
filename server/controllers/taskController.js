@@ -1,4 +1,5 @@
 import { tasks } from "../src/db/schema"; // path to your users table
+import { comments } from "../src/db/schema"; // path to your users table
 import { db } from "../src/db/db"; // your Drizzle db instance
 import { eq } from 'drizzle-orm';
 
@@ -40,6 +41,7 @@ const updateTask = async (req, res) => {
   try {
     const { id } = req.params;
     const { taskName, projectName, due_date } = req.body;
+    console.log('update requtes')
 
     const updated = await db
       .update(tasks)
@@ -61,7 +63,7 @@ const updateTask = async (req, res) => {
 const updateTaskStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status} = req.body;
+    const { status } = req.body;
 
     const updated = await db
       .update(tasks)
@@ -98,10 +100,81 @@ const deleteTask = async (req, res) => {
   }
 };
 
+const commentTask = async (req, res) => {
+  try {
+    const { taskId } = req.params; // from URL
+    const { comment } = req.body;
+    const userId = req.user?.id; // from auth middleware
+
+    // console.log(taskId,comment,userId)
+
+    if (!comment || !comment.trim()) {
+      return res.status(400).json({ message: "Comment cannot be empty" });
+    }
+
+    // insert into comments table
+    const result = await db.insert(comments).values({
+      task_id: taskId,
+      user_id: userId,
+      comment,
+    }).returning();
+
+    return res.status(201).json({
+      message: "Comment added successfully",
+      comment: result[0],
+    });
+  } catch (error) {
+    console.error("Error commenting on task:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getComments = async (req, res) => {
+  // await db.delete(comments);
+  try {
+    const allComments = await db.select().from(comments);
+    res.json(allComments);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Unable to fetch comments" });
+  }
+};
+
+const getCommentsByTask = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const userId = req.user?.id // from auth middleware
+
+    if (!taskId) {
+      return res.status(400).json({ error: "Task ID is required" });
+    }
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const taskComments = await db
+      .select()
+      .from(comments)
+      .where(
+        eq(comments.task_id, taskId),
+        eq(comments.user_id, userId)
+      );
+
+    res.json(taskComments);
+  } catch (err) {
+    console.error("Error fetching comments:", err);
+    res.status(500).json({ error: "Unable to fetch comments" });
+  }
+};
+
 module.exports = {
   getTasks,
   addTask,
   updateTask,
   deleteTask,
-  updateTaskStatus
+  updateTaskStatus,
+  commentTask,
+  getComments,
+  getCommentsByTask
 };
