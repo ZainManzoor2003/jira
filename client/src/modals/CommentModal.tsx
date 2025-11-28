@@ -79,7 +79,7 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ isOpen, onClose, taskId }
               <div key={c.id} className="p-3 bg-gray-50 rounded shadow-sm">
                 <p className="text-gray-800">{c.comment}</p>
                 <span className="text-gray-400 text-xs">
-                  {new Date(c.created_at).toLocaleString()}
+                  {new Date(c.created_at).toISOString().split('T')[0]}
                 </span>
               </div>
             ))}

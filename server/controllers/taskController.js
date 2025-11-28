@@ -161,6 +161,8 @@ const getCommentsByTask = async (req, res) => {
         eq(comments.user_id, userId)
       );
 
+      console.log(taskComments)
+
     res.json(taskComments);
   } catch (err) {
     console.error("Error fetching comments:", err);
