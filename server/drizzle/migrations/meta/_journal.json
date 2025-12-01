@@ -78,6 +78,13 @@
       "when": 1764307937114,
       "tag": "0010_useful_goblin_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1764575576266,
+      "tag": "0011_steady_king_bedlam",
+      "breakpoints": true
     }
   ]
 }

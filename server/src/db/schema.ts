@@ -11,9 +11,10 @@ const users = pgTable("users", {
 
 const tasks = pgTable("tasks", {
     id: uuid("id").primaryKey().defaultRandom(),
+    user_id: uuid("user_id").notNull(),
     taskName: varchar("task_name", { length: 255 }).notNull(),
     projectName: varchar("project_name", { length: 255 }).notNull(),
-    status: varchar("status", { length: 50 }).notNull().default("to-do"), 
+    status: varchar("status", { length: 50 }).notNull().default("to-do"),
     created_at: timestamp("created_at").defaultNow(),
     due_date: varchar("due_date", { length: 20 }).notNull(),
 });

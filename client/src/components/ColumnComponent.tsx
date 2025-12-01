@@ -288,7 +288,7 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
             Create
           </button>
         )}
-        <CommentsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} taskId={taskId}/>
+        <CommentsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} taskId={taskId} />
       </div>
     </div>
   );

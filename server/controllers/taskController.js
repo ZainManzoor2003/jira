@@ -6,7 +6,8 @@ import { eq } from 'drizzle-orm';
 // GET ALL TASKS
 const getTasks = async (req, res) => {
   try {
-    const allTasks = await db.select().from(tasks);
+    const user_id = req.user?.id; // from auth middleware
+    const allTasks = await db.select().from(tasks).where(eq(tasks.user_id, user_id));
     res.json(allTasks);
   } catch (err) {
     console.error(err);
@@ -18,6 +19,7 @@ const getTasks = async (req, res) => {
 const addTask = async (req, res) => {
   try {
     const { taskName, projectName, status, due_date } = req.body;
+    const user_id = req.user?.id; // from auth middleware
 
     const newTask = await db
       .insert(tasks)
@@ -26,6 +28,7 @@ const addTask = async (req, res) => {
         projectName,
         status: status || "to-do",
         due_date,
+        user_id
       })
       .returning();
 
@@ -41,7 +44,6 @@ const updateTask = async (req, res) => {
   try {
     const { id } = req.params;
     const { taskName, projectName, due_date } = req.body;
-    console.log('update requtes')
 
     const updated = await db
       .update(tasks)
@@ -160,8 +162,6 @@ const getCommentsByTask = async (req, res) => {
         eq(comments.task_id, taskId),
         eq(comments.user_id, userId)
       );
-
-      console.log(taskComments)
 
     res.json(taskComments);
   } catch (err) {

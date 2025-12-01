@@ -1,14 +1,17 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
     Search, Plus, Filter, MoreHorizontal, LayoutDashboard, CheckCircle,
-    ChevronDown, List, Clock, FolderOpen, Share2, Star, Menu
+    ChevronDown, List, Clock, FolderOpen, Share2, Star, Menu,
+    LogOut
 } from 'lucide-react';
 import ColumnComponent from '../components/ColumnComponent';
 import axios from 'axios';
+import Cookies from 'js-cookie';
 
 // DND-KIT IMPORTS
 import { DndContext, closestCorners } from '@dnd-kit/core';
 import type { DragEndEvent, UniqueIdentifier } from '@dnd-kit/core';
+import { useNavigate } from 'react-router-dom';
 // END DND-KIT IMPORTS
 
 // NOTE: Assuming Header is a simple component and does not cause errors
@@ -90,6 +93,7 @@ const UserTasks: React.FC = () => {
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const navigate = useNavigate()
 
     const [columns, setColumns] = useState<Column[]>([
         { id: "to-do", title: "TO DO", statusCount: 0, color: "text-red-500", tasks: [] },
@@ -103,7 +107,7 @@ const UserTasks: React.FC = () => {
     ]);
 
     const getAllTasks = async () => {
-        const res = await axios.get("/task/all");
+        const res = await axios.get("/task/all", { withCredentials: true });
         return res.data;
     };
 
@@ -114,7 +118,7 @@ const UserTasks: React.FC = () => {
         status: string;
         due_date: string;
     }) => {
-        const res = await axios.post("/task/add", data);
+        const res = await axios.post("/task/add", data, { withCredentials: true });
         return res.data;
     };
 
@@ -195,9 +199,10 @@ const UserTasks: React.FC = () => {
             return;
         }
 
+        let newColumns:Column[] = [];
         // 1. Optimistic UI update
         setColumns(prevColumns => {
-            const newColumns = prevColumns.map(col => ({ ...col }));
+            newColumns = prevColumns.map(col => ({ ...col }));
 
             const sourceColumn = newColumns.find(col => col.id === activeColumnId);
             const destinationColumn = newColumns.find(col => col.id === overColumnId);
@@ -221,30 +226,7 @@ const UserTasks: React.FC = () => {
             return newColumns;
         });
         // 1. Optimistic UI update
-        setFilterColumns(prevColumns => {
-            const newColumns = prevColumns.map(col => ({ ...col }));
-
-            const sourceColumn = newColumns.find(col => col.id === activeColumnId);
-            const destinationColumn = newColumns.find(col => col.id === overColumnId);
-
-            if (!sourceColumn || !destinationColumn) return prevColumns;
-
-            // Remove task from source column
-            const taskIndex = sourceColumn.tasks.findIndex(task => task.id === activeTaskId);
-            if (taskIndex !== -1) {
-                const [taskToMove] = sourceColumn.tasks.splice(taskIndex, 1);
-
-                // Add task to destination column
-                taskToMove.status = overColumnId; // Update local status
-                destinationColumn.tasks.push(taskToMove);
-
-                // Recalculate counts
-                sourceColumn.statusCount = sourceColumn.tasks.length;
-                destinationColumn.statusCount = destinationColumn.tasks.length;
-            }
-
-            return newColumns;
-        });
+        setFilterColumns(newColumns);
 
         // 2. Persist change to the backend
         try {
@@ -382,6 +364,10 @@ const UserTasks: React.FC = () => {
             setFilterColumns(newColumns)
         }
     }
+    const handleLogout = () => {
+        Cookies.remove("token"); // remove token cookie
+        navigate("/login")// redirect to login
+    };
     const tabs = [
         { name: 'Summary' },
         { name: 'Backlog' },
@@ -419,7 +405,7 @@ const UserTasks: React.FC = () => {
                         <div className="flex items-center space-x-3 text-gray-600">
                             <Star className="w-5 h-5 cursor-pointer hover:text-yellow-500" />
                             <Share2 className="w-5 h-5 cursor-pointer hover:text-blue-500" />
-                            <MoreHorizontal className="w-5 h-5 cursor-pointer hover:text-gray-800" />
+                            <LogOut className="w-5 h-5 cursor-pointer hover:text-gray-800 hover:text-red-500 " onClick={handleLogout} />
                         </div>
                     </div>
                     <div className="flex space-x-6 overflow-x-auto whitespace-nowrap">
