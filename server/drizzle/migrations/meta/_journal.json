@@ -85,6 +85,13 @@
       "when": 1764575576266,
       "tag": "0011_steady_king_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1764590996049,
+      "tag": "0012_dry_machine_man",
+      "breakpoints": true
     }
   ]
 }

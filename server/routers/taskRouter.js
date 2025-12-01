@@ -5,7 +5,7 @@ const { authMiddleware } = require('../middlewares/authMiddleware');
 const taskController = require('../controllers/taskController');
 
 
-router.get("/all", authMiddleware,taskController.getTasks);
+router.get("/all/:projectName", authMiddleware,taskController.getTasks);
 
 router.post("/add", authMiddleware, taskController.addTask);
 

@@ -5,6 +5,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const authRouter = require('../routers/authRouter');
 const taskRouter = require('../routers/taskRouter');
+const projectRouter = require('../routers/projectRouter');
 
 const app = express();
 
@@ -18,12 +19,14 @@ const corsOptions = {
 app.use(cookieParser());
 app.use(cors(corsOptions));
 app.use(express.json());
+
 app.use('/auth', authRouter);
 app.use('/task', taskRouter);
+app.use('/project', projectRouter);
 
 // connect drizzle and run server
-  app.listen(process.env.PORT, () => {
-    console.log('Server Connected at port', process.env.PORT);
-  });
+app.listen(process.env.PORT, () => {
+  console.log('Server Connected at port', process.env.PORT);
+});
 
 module.exports = app;

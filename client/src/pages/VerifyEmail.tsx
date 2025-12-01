@@ -8,7 +8,7 @@ export default function VerifyEmail() {
     const { email } = useParams()
     const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
-    axios.defaults.baseURL = 'http://localhost:3001'
+    axios.defaults.baseURL = 'http://localhost:8080'
 
     const inputLength = 6;
 

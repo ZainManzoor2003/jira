@@ -9,6 +9,11 @@ const users = pgTable("users", {
     isVerified: boolean("is_verified").default(false).notNull(),
 });
 
+const projects = pgTable("projects", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    user_id: uuid("user_id").notNull(),
+    projectName: varchar("project_name", { length: 255 }).notNull(),
+});
 const tasks = pgTable("tasks", {
     id: uuid("id").primaryKey().defaultRandom(),
     user_id: uuid("user_id").notNull(),
@@ -29,6 +34,7 @@ const comments = pgTable("comments", {
 
 module.exports = {
     users,
+    projects,
     tasks,
     comments
 };

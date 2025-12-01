@@ -1,13 +1,18 @@
 import { tasks } from "../src/db/schema"; // path to your users table
 import { comments } from "../src/db/schema"; // path to your users table
 import { db } from "../src/db/db"; // your Drizzle db instance
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 // GET ALL TASKS
 const getTasks = async (req, res) => {
   try {
+    const { projectName } = req.params;
     const user_id = req.user?.id; // from auth middleware
-    const allTasks = await db.select().from(tasks).where(eq(tasks.user_id, user_id));
+    const allTasks = await db.select().from(tasks).where(
+      and(
+        eq(tasks.user_id, user_id),
+        eq(tasks.projectName, projectName))
+    )
     res.json(allTasks);
   } catch (err) {
     console.error(err);
@@ -169,6 +174,8 @@ const getCommentsByTask = async (req, res) => {
     res.status(500).json({ error: "Unable to fetch comments" });
   }
 };
+
+
 
 module.exports = {
   getTasks,

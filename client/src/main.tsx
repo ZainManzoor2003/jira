@@ -7,8 +7,8 @@ import Home from './pages/Home.tsx';
 import Login from './pages/Login.tsx';
 import Signup from './pages/Signup.tsx';
 import VerifyEmail from './pages/VerifyEmail.tsx';
-import UserTasks from './pages/UserTasks.tsx';
 import PrivateRoute from './components/PrivateRoute.tsx';
+import UserDashboard from './pages/UserDashboard.tsx';
 
 
 const router = createBrowserRouter([
@@ -21,7 +21,9 @@ const router = createBrowserRouter([
       { path: "login", element: <Login /> },
       { path: "signup", element: <Signup /> },
       { path: "verifyEmail/:email", element: <VerifyEmail /> },
-      { path: "user/tasks", element: <PrivateRoute><UserTasks /></PrivateRoute> }
+      
+      { path: "user/dashboard/projects", element: <PrivateRoute><UserDashboard /></PrivateRoute> },
+      { path: "user/dashboard/projects/:projectName", element: <PrivateRoute><UserDashboard /></PrivateRoute> }
     ],
   },
 ]);
