@@ -5,7 +5,11 @@ import {
     LogOut,
     Pencil,
     Trash2,
-    X
+    X,
+    Copy,
+    Check,
+    UserCheck,
+    ArrowDown
 } from 'lucide-react';
 import ColumnComponent from '../components/ColumnComponent';
 import axios from 'axios';
@@ -57,6 +61,7 @@ interface Project {
 // Define the props for the main component
 interface ProjectListSectionProps {
     projects: Project[];
+    assignedProjects: Project[];
     fetchProjects: () => void;
 }
 
@@ -101,12 +106,14 @@ const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen }) 
     );
 };
 
-const ProjectListSection: React.FC<ProjectListSectionProps> = ({ projects, fetchProjects }) => {
+const ProjectListSection: React.FC<ProjectListSectionProps> = ({ projects, fetchProjects, assignedProjects }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isUpdateOpen, setIsUpdateOpen] = useState(false);
     const [projectName, setProjectName] = useState("");
     const [updateProjectId, setUpdateProjectId] = useState("");
     const [updatedProjectName, setUpdatedProjectName] = useState("");
+    const [copied, setCopied] = useState(false);
+
 
     const navigate = useNavigate()
 
@@ -157,7 +164,7 @@ const ProjectListSection: React.FC<ProjectListSectionProps> = ({ projects, fetch
 
 
             fetchProjects();  // reset
-        } catch (err :any) {
+        } catch (err: any) {
             if (err.response && err.response.status === 409) {
                 toast.error(err.response.data.message); // show "Project with this name already exists"
             } else {
@@ -168,22 +175,42 @@ const ProjectListSection: React.FC<ProjectListSectionProps> = ({ projects, fetch
         setProjectName("");
     };
 
+    const handleLogout = () => {
+        Cookies.remove("token"); // remove token cookie
+        navigate("/login")// redirect to login
+    };
+
+    const handleCopy = async (projectName: string) => {
+        const text = `http://localhost:5173/login?project=${projectName}`;
+        try {
+            // Primary API
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+            // Reset visual feedback after 1.6s
+            setTimeout(() => setCopied(false), 1600);
+        } catch (err) {
+            console.error("Copy failed");
+            alert("Unable to copy");
+        }
+    };
+
     return (
         // Main content area wrapper below the Header
         <div className="flex-1 overflow-y-auto bg-gray-50 min-h-0">
 
             {/* Grid or List Layout Container */}
             <div className="">
-                <div className='m-2 flex justify-end'>
+                <div className='m-2 flex justify-end items-center gap-2'>
                     <button onClick={() => setIsOpen(true)} className="flex items-center text-sm font-medium text-white bg-blue-600 px-4 
                                 py-2 hover:bg-blue-700 transition-colors cursor-pointer">
                         New Project
                         <Plus className="w-4 h-4 ml-1" />
                     </button>
+                    <LogOut className="w-5 h-5 cursor-pointer hover:text-gray-800 hover:text-red-500 " onClick={handleLogout} />
                 </div>
                 {projects.length === 0 ?
                     <>
-                        <p className="text-gray-500 italic p-2">No projects found. Start by creating a new one!</p>
+                        <p className="text-gray-500 italic p-2">No your projects found. Start by creating a new one!</p>
                     </> :
                     (
                         <>
@@ -210,6 +237,33 @@ const ProjectListSection: React.FC<ProjectListSectionProps> = ({ projects, fetch
 
                                         {/* Action Buttons (End of Row) */}
                                         <div className="flex items-center space-x-3 ml-4 flex-shrink-0">
+                                            <button
+                                                onClick={() => handleCopy(project.projectName)}
+                                                aria-label="Copy text"
+                                                title={copied ? "Copied!" : "Copy"}
+                                                style={{
+                                                    display: "inline-flex",
+                                                    gap: 8,
+                                                    alignItems: "center",
+                                                    padding: "8px 12px",
+                                                    borderRadius: 8,
+                                                    border: "1px solid #ddd",
+                                                    background: copied ? "#e6ffed" : "#fff",
+                                                    cursor: "pointer",
+                                                }}
+                                            >
+                                                {copied ? (
+                                                    <>
+                                                        <Check size={16} />
+                                                        <span>Copied</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Copy size={16} />
+                                                        <span>Invite Link</span>
+                                                    </>
+                                                )}
+                                            </button>
                                             {/* Update Button */}
                                             <button
                                                 onClick={() => {
@@ -281,6 +335,44 @@ const ProjectListSection: React.FC<ProjectListSectionProps> = ({ projects, fetch
 
                         </>
                     )}
+
+                {assignedProjects.length === 0 ?
+                    <>
+                        <p className="text-gray-500 italic p-2">No assigned projects found.</p>
+                    </> :
+                    (
+                        <>
+
+
+                            {assignedProjects.map((project) => (
+                                <>
+                                    <div
+                                        key={project.id}
+                                        className="flex items-center justify-between p-4 bg-white shadow-sm hover:shadow-md transition 
+                            duration-150 border border-gray-200"
+                                    >
+                                        {/* Project Name (Column Wise Display) */}
+                                        <div className="flex-1 min-w-0">
+                                            <h2 className="text-md  text-black-500 hover:underline cursor-pointer"
+                                                onClick={() => {
+                                                    navigate(`/user/dashboard/projects/${project.projectName}`);
+                                                }}
+
+                                            >
+                                                {project.projectName}
+                                            </h2>
+                                        </div>
+                                            <ArrowDown className="w-4 h-4" />
+
+
+
+                                    </div >
+                                </>
+
+                            ))}
+
+                        </>
+                    )}
                 {isOpen && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white w-full max-w-sm p-6 rounded-lg shadow-lg relative">
@@ -340,6 +432,8 @@ const UserDashboard: React.FC = () => {
     const navigate = useNavigate()
 
     const [projects, setProjects] = useState<Project[]>([]);
+    const [assignedProjects, setAssignedProjects] = useState<Project[]>([]);
+    const [canModify, setCanModify] = useState(true);
 
     const [columns, setColumns] = useState<Column[]>([
         { id: "to-do", title: "TO DO", statusCount: 0, color: "text-red-500", tasks: [] },
@@ -354,11 +448,14 @@ const UserDashboard: React.FC = () => {
 
     const getAllTasks = async () => {
         const res = await axios.get(`/task/all/${projectName}`, { withCredentials: true });
-        return res.data;
+        console.log(res.data)
+        setCanModify(res.data.canModify)
+        return res.data.allTasks;
     };
     const fetchProjects = async () => {
         const res = await axios.get("/project/getProjects", { withCredentials: true });
-        setProjects(res.data);
+        setProjects(res.data.myProjects);
+        setAssignedProjects(res.data.assignedProjects);
     };
 
     // Add task
@@ -368,8 +465,17 @@ const UserDashboard: React.FC = () => {
         status: string;
         due_date: string;
     }) => {
-        const res = await axios.post("/task/add", data, { withCredentials: true });
-        return res.data;
+        try {
+            const res = await axios.post("/task/add", data, { withCredentials: true });
+            return res.data;
+        } catch (err: any) {
+            if (err.response && err.response.status === 409) {
+                toast.error(err.response.data.message); // show "Project with this name already exists"
+            } else {
+                console.error(err);
+            }
+        }
+
     };
 
     const updateTask = async (taskId: string, data: any) => {
@@ -559,7 +665,7 @@ const UserDashboard: React.FC = () => {
 
     const deleteTask = async (taskId: string) => {
         try {
-            const res = await axios.delete(`/task/delete/${taskId}`, {
+            const res = await axios.delete(`/task/delete/${taskId}/${projectName}`, {
                 withCredentials: true
             });
             console.log("Task deleted:", res.data);
@@ -632,7 +738,6 @@ const UserDashboard: React.FC = () => {
         { name: 'More', icon: Plus },
     ];
 
-    console.log(projectName)
 
 
     return (
@@ -652,6 +757,7 @@ const UserDashboard: React.FC = () => {
                     <ProjectListSection
                         projects={projects}
                         fetchProjects={fetchProjects}
+                        assignedProjects={assignedProjects}
                     />
                 </div> :
 
@@ -663,7 +769,7 @@ const UserDashboard: React.FC = () => {
                     <div className="bg-white p-4 border-b border-gray-200">
                         <div className="flex justify-between items-center mb-4">
                             <h1 className="text-xl font-bold text-gray-900 flex items-center">
-                                My Scrum Project
+                                {projectName}
                                 <span className="text-gray-400 mx-2">/</span>
                                 <span className="text-base font-normal text-gray-600">Board</span>
                             </h1>
@@ -742,6 +848,7 @@ const UserDashboard: React.FC = () => {
                                         onTaskAction={handleTaskAction}
                                         // Pass task IDs for Droppable to know its children
                                         taskIds={col.tasks.map(t => t.id)}
+                                        canModify={canModify}
                                     />
                                 ))}
                             </div>

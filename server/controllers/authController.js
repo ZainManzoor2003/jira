@@ -1,16 +1,16 @@
-import { users } from "../src/db/schema"; // path to your users table
+import { users, projects } from "../src/db/schema"; // path to your users table
 import { db } from "../src/db/db"; // your Drizzle db instance
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 const { sendEmailOtp } = require("../controllers/emailNotify"); // your email service
 import jwt from "jsonwebtoken";
 
 const login = async (req, res) => {
   try {
-    const { email } = req.body;
-
+    const { email, assignedProject } = req.body;
     // 1. Validate input
     if (!email)
       return res.status(400).json({ message: "Email required" });
+
 
     // 2. Check if user exists
     const userData = await db.select().from(users).where(eq(users.email, email));
@@ -18,6 +18,44 @@ const login = async (req, res) => {
       return res.json({ message: "User not found", success: false });
 
     const user = userData[0];
+
+    if (assignedProject) {
+      const projectResult = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.projectName, assignedProject));
+
+      if (projectResult.length === 0) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      const project = projectResult[0];
+
+      // Step 2: Check if email already exists in members_id
+      if (project.members_email.includes(email)) {
+        return res.json({
+          message: "Member already exists in project",
+          project,
+        });
+      }
+
+      if (project.owner_email === email) {
+        console.log("Owner cannot be member");
+        return res.status(400).json({
+          message: "Owner cannot be added as member",
+          project,
+        });
+      }
+
+      // Step 3: Append email to members_id
+      const updatedProject = await db
+        .update(projects)
+        .set({
+          members_email: sql`${projects.members_email} || ARRAY[${email}]::varchar[]`,
+        })
+        .where(eq(projects.id, project.id))
+        .returning();
+    }
 
     // 4. Create JWT token
     const token = jwt.sign(

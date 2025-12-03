@@ -33,9 +33,11 @@ interface TaskCardProps {
   onTaskAction: (taskId: string, action: 'delete' | 'update' | 'comment', updateData: any) => void
   setIsUpdateTask: React.Dispatch<React.SetStateAction<boolean>>
   setIsComment: React.Dispatch<React.SetStateAction<boolean>>
+  setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>
   setTaskId: React.Dispatch<React.SetStateAction<string>>
   setUpdatedTaskTitle: React.Dispatch<React.SetStateAction<string>>
   setUpdatedDueDate: React.Dispatch<React.SetStateAction<string>>
+  canModify: boolean
 }
 
 // --- Props for ColumnComponent ---
@@ -44,9 +46,10 @@ interface ColumnComponentProps {
   onAddTask: (columnId: string, title: string, dueDate: string) => void;
   onTaskAction: (taskId: string, action: 'delete' | 'update' | 'comment', updateData: any) => void;
   taskIds: string[]; // Prop to pass the list of task IDs
+  canModify: boolean;
 }
 
-const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, onTaskAction, taskIds }) => {
+const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, onTaskAction, taskIds,canModify }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newDueDate, setNewTaskDueDate] = useState('');
@@ -129,6 +132,8 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
             setTaskId={setTaskId}
             setUpdatedTaskTitle={setUpdatedTaskTitle}
             setUpdatedDueDate={setUpdatedDueDate}
+            canModify={canModify}
+            setIsModalOpen={setIsModalOpen}
           />
         ))}
 
@@ -268,18 +273,11 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
               >
                 <X className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                title="View all task comments"
-              >
-                View all
-              </button>
             </div>
           </div>
         )}
 
-        {!isCreating && (
+        {!isCreating && canModify && (
           <button
             onClick={handleCreateClick}
             className="flex items-center text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors mt-2"

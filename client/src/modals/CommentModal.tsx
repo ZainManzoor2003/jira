@@ -20,11 +20,13 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ isOpen, onClose, taskId }
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  axios.defaults.baseURL = "http://localhost:8080";
 
   useEffect(() => {
     if (!isOpen) return;
-
+    
     const fetchComments = async () => {
+      console.log('TASKID',taskId)
       try {
         setLoading(true);
         setError(null);
@@ -34,7 +36,7 @@ const CommentsModal: React.FC<CommentsModalProps> = ({ isOpen, onClose, taskId }
         setComments(res.data);
       } catch (err: any) {
         console.error(err);
-        setError("Failed to load comments");
+        setError("Failed to load comments"+err.message);
       } finally {
         setLoading(false);
       }

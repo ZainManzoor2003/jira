@@ -17,9 +17,11 @@ interface TaskCardProps {
     onTaskAction: (taskId: string, action: 'delete' | 'update', updateData: any) => void;
     setIsUpdateTask: React.Dispatch<React.SetStateAction<boolean>>
     setIsComment: React.Dispatch<React.SetStateAction<boolean>>
+    setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>
     setTaskId: React.Dispatch<React.SetStateAction<string>>
     setUpdatedTaskTitle: React.Dispatch<React.SetStateAction<string>>
     setUpdatedDueDate: React.Dispatch<React.SetStateAction<string>>
+    canModify: boolean;
 }
 
 const UserAvatar: React.FC<{ initial: string }> = ({ initial }) => (
@@ -28,7 +30,8 @@ const UserAvatar: React.FC<{ initial: string }> = ({ initial }) => (
     </div>
 );
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask, setIsComment, setTaskId, setUpdatedTaskTitle, setUpdatedDueDate }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask, setIsComment, setTaskId, setUpdatedTaskTitle,
+    setUpdatedDueDate, canModify, setIsModalOpen }) => {
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -43,6 +46,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
     };
 
     const handleUpdate = (e: React.MouseEvent) => {
+        if (canModify === false) return;
         e.stopPropagation();
         setIsUpdateTask(true);
         setTaskId(task.id);
@@ -100,14 +104,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
                         ))}
                     </div>
 
-                    <div className="relative">
+                    <div className="flex-col">
+                        <div className="flex justify-end">
 
-                        <MessagesSquare
-                            className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer"
-                            onDoubleClick={() => { setIsComment(true); setTaskId(task.id); setIsMenuOpen(false); }}
-                        />
+                            <MessagesSquare
+                                className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                onDoubleClick={() => { setIsComment(true); setTaskId(task.id); setIsMenuOpen(false); }}
+                            />
+                        </div>
+                        <button
+                            onDoubleClick={() => { setTaskId(task.id); setIsModalOpen(true) }}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
+                            title="View all task comments"
+                        >
+                            View comments
+                        </button>
 
-                        {isMenuOpen && (
+                        {/* {isMenuOpen && (
                             <div className="absolute right-0 top-6 w-32 bg-white rounded-lg shadow-xl z-10 border border-gray-100">
                                 <button
                                     onDoubleClick={handleUpdate}
@@ -124,7 +137,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
                                     Delete
                                 </button>
                             </div>
-                        )}
+                        )} */}
 
                     </div>
                 </div>

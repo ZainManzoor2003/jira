@@ -13,7 +13,7 @@ router.put("/update/:id", authMiddleware, taskController.updateTask);
 
 router.put("/update/status/:id", authMiddleware, taskController.updateTaskStatus);
 
-router.delete("/delete/:id", authMiddleware, taskController.deleteTask);
+router.delete("/delete/:id/:projectName", authMiddleware, taskController.deleteTask);
 
 router.post("/comment/:taskId", authMiddleware, taskController.commentTask);
 

@@ -11,9 +11,14 @@ const users = pgTable("users", {
 
 const projects = pgTable("projects", {
     id: uuid("id").primaryKey().defaultRandom(),
-    user_id: uuid("user_id").notNull(),
+    owner_email: varchar("owner_email").notNull(),
+    owner_id: uuid("owner_id").notNull(),
+    members_email: varchar("members_email", { length: 255 }).array().notNull().default([]),
     projectName: varchar("project_name", { length: 255 }).notNull(),
+    tasks_ids: uuid("tasks_ids").array().notNull().default([]),
+    owner: boolean("owner").default(true).notNull(),
 });
+
 const tasks = pgTable("tasks", {
     id: uuid("id").primaryKey().defaultRandom(),
     user_id: uuid("user_id").notNull(),
