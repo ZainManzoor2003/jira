@@ -91,12 +91,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
                 </div>
 
                 <div className="flex items-center space-x-2">
-                    {task.comments > 0 && (
-                        <div className="flex items-center space-x-1">
-                            <MessageSquare className="w-3 h-3" />
-                            <span>{task.comments}</span>
-                        </div>
-                    )}
+                    {
+                        task.comments > 0 && (
+                            <div className="flex items-center space-x-1">
+                                <MessageSquare className="w-3 h-3" />
+                                <span>{task.comments}</span>
+                            </div>
+                        )}
 
                     <div className="flex -space-x-1">
                         {task.assignees.map((a, index) => (
@@ -108,13 +109,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
                         <div className="flex justify-end">
 
                             <MessagesSquare
-                                className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                className="w-4 h-4 text-gray-400 hover:text-gray-800 cursor-pointer"
                                 onDoubleClick={() => { setIsComment(true); setTaskId(task.id); setIsMenuOpen(false); }}
                             />
                         </div>
                         <button
                             onDoubleClick={() => { setTaskId(task.id); setIsModalOpen(true) }}
-                            className="text-xs text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
+                            className="text-xs text-gray-600 hover:text-gray-800 font-medium cursor-pointer"
                             title="View all task comments"
                         >
                             View comments
