@@ -16,8 +16,8 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 // DND-KIT IMPORTS
-import { DndContext, closestCorners,MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
-import type { DragEndEvent, UniqueIdentifier} from '@dnd-kit/core';
+import { DndContext, closestCorners, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent, UniqueIdentifier } from '@dnd-kit/core';
 
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -68,11 +68,23 @@ interface ProjectListSectionProps {
 
 // --- Sidebar and NavItem (Corrected) ---
 const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen }) => {
+
+    const { projectName } = useParams();
     // ... (Sidebar component code remains the same)
     const NavItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean }> = ({ icon, label, active }) => (
-        <div className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${active ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}>
+        <div
+            className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors 
+    ${active ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
+        >
             {icon}
             <span className="ml-3 text-sm">{label}</span>
+
+            {/* Show "Coming Soon" only if not active */}
+            {!active && (
+                <span className="ml-2 text-xs text-gray-400 italic">
+                    Coming Soon
+                </span>
+            )}
         </div>
     );
 
@@ -91,17 +103,12 @@ const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen }) 
                     <h4 className="text-xs font-semibold text-gray-500 uppercase mt-4 mb-2">Project</h4>
                     <NavItem
                         icon={<LayoutDashboard className="w-5 h-5" />}
-                        label="My Scrum Project"
+                        label={projectName ? projectName : ""}
                         active
                     />
                     <NavItem icon={<List className="w-5 h-5" />} label="More spaces" />
                     <NavItem icon={<Plus className="w-5 h-5" />} label="Browse templates" />
                 </nav>
-
-                {/* Bottom actions */}
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                    <NavItem icon={<MoreHorizontal className="w-5 h-5" />} label="Give Feedback" />
-                </div>
             </div>
         </div>
     );
@@ -456,13 +463,20 @@ const UserDashboard: React.FC = () => {
 
     const sensors = useSensors(mouseSensor, useSensor(TouchSensor));
 
-    
+
 
     const getAllTasks = async () => {
-        const res = await axios.get(`/task/all/${projectName}`, { withCredentials: true });
-        console.log(res.data)
-        setCanModify(res.data.canModify)
-        return res.data.allTasks;
+        try {
+            const res = await axios.get(`/task/all/${projectName}`, { withCredentials: true });
+            setCanModify(res.data.canModify)
+            return res.data.allTasks;
+        } catch (error: any) {
+            if (error.response && error.response.status === 404) {
+                setCanModify(error.response.data.canModify)
+            }
+            return []
+        }
+
     };
     const fetchProjects = async () => {
         const res = await axios.get("/project/getProjects", { withCredentials: true });
@@ -500,6 +514,7 @@ const UserDashboard: React.FC = () => {
             payload.due_date = data.updatedDueDate;
         }
         payload.projectName = projectName
+
 
         const res = await axios.put(`/task/update/${taskId}`, payload, {
             withCredentials: true, // sends cookies if your API uses JWT in cookies
@@ -721,7 +736,6 @@ const UserDashboard: React.FC = () => {
 
     const filterTasks = (value: string) => {
         setSearchTerm(value);
-        console.log(value)
         if (value === '') {
             setFilterColumns(columns)
         }
@@ -786,8 +800,6 @@ const UserDashboard: React.FC = () => {
                                 <span className="text-base font-normal text-gray-600">Board</span>
                             </h1>
                             <div className="flex items-center space-x-3 text-gray-600">
-                                <Star className="w-5 h-5 cursor-pointer hover:text-yellow-500" />
-                                <Share2 className="w-5 h-5 cursor-pointer hover:text-blue-500" />
                                 <LogOut className="w-5 h-5 cursor-pointer hover:text-gray-800 hover:text-red-500 " onClick={handleLogout} />
                             </div>
                         </div>
@@ -795,10 +807,17 @@ const UserDashboard: React.FC = () => {
                             {tabs.map((tab, index) => (
                                 <div
                                     key={index}
-                                    className={`flex items-center py-2 text-sm font-medium cursor-pointer transition-colors ${tab.active
-                                        ? 'border-b-2 border-blue-600 text-blue-600'
-                                        : 'text-gray-600 hover:text-gray-800 hover:border-b-2 hover:border-gray-300'
+                                    className={`flex items-center py-2 text-sm font-medium transition-colors
+      ${tab.active
+                                            ? 'border-b-2 border-blue-600 text-blue-600 cursor-pointer'
+                                            : 'text-gray-400 cursor-not-allowed opacity-50'
                                         }`}
+                                    onClick={() => {
+                                        if (tab.active) {
+                                            // handle click for active tab if needed
+                                        }
+                                    }}
+                                    title={!tab.active ? "Coming Soon" : undefined} // optional tooltip
                                 >
                                     {tab.icon && <tab.icon className="w-4 h-4 mr-1.5" />}
                                     {tab.name}
@@ -821,13 +840,24 @@ const UserDashboard: React.FC = () => {
                                 />
                             </div>
 
-                            <button className="flex items-center text-sm font-medium text-gray-700 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors border border-gray-300">
-                                <Filter className="w-4 h-4 mr-1" />
-                                Filter
-                            </button>
+                            <div className="flex items-center space-x-2">
+                                <button className="flex items-center text-sm font-medium text-gray-700 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors border border-gray-300">
+                                    <Filter className="w-4 h-4 mr-1" />
+                                    Filter
+                                </button>
+
+                                {/* Coming Soon label */}
+                                <span className="text-xs text-gray-400 italic">
+                                    Coming Soon
+                                </span>
+                            </div>
                         </div>
 
                         <div className="flex flex-wrap gap-3 items-center">
+                            {/* Coming Soon label */}
+                            <span className="text-xs text-gray-400 italic ml-2">
+                                Coming Soon
+                            </span>
                             <button className="flex items-center text-sm font-medium text-white bg-blue-600 px-4 py-2 hover:bg-blue-700 transition-colors cursor-pointer">
                                 Complete sprint
                                 <CheckCircle className="w-4 h-4 ml-1" />
@@ -841,7 +871,10 @@ const UserDashboard: React.FC = () => {
                             <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300">
                                 <MoreHorizontal className="w-5 h-5" />
                             </button>
+
+
                         </div>
+
                     </div>
 
                     {/* Kanban Board Container - WRAPPED WITH DNDCONTEXT */}

@@ -40,12 +40,13 @@ interface Comment {
 interface TaskCardProps {
   task: Task
   onTaskAction: (taskId: string, action: 'delete' | 'update' | 'comment', updateData: any) => void
-  setIsUpdateTask: React.Dispatch<React.SetStateAction<boolean>>
   setIsComment: React.Dispatch<React.SetStateAction<boolean>>
   setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>
   setTaskId: React.Dispatch<React.SetStateAction<string>>
   setUpdatedTaskTitle: React.Dispatch<React.SetStateAction<string>>
   setUpdatedDueDate: React.Dispatch<React.SetStateAction<string>>
+  updatedDueDate: string
+  updatedTaskTitle: string
   canModify: boolean
 }
 
@@ -124,6 +125,10 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
           <span className={`text-xs ml-1 font-bold ${column.color}`}>{column.statusCount}</span>
         </h3>
         <div className="flex items-center space-x-2">
+          {/* Coming Soon label */}
+          <span className="text-xs text-gray-400 italic">
+            Coming Soon
+          </span>
           <Plus className="w-4 h-4 text-gray-500 cursor-pointer hover:text-gray-700" />
           <MoreHorizontal className="w-4 h-4 text-gray-500 cursor-pointer hover:text-gray-700" />
         </div>
@@ -137,11 +142,12 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
             key={task.id}
             task={task}
             onTaskAction={onTaskAction}
-            setIsUpdateTask={setIsUpdateTask}
             setIsComment={setIsComment}
             setTaskId={setTaskId}
             setUpdatedTaskTitle={setUpdatedTaskTitle}
             setUpdatedDueDate={setUpdatedDueDate}
+            updatedDueDate={updatedDueDate}
+            updatedTaskTitle={updatedTaskTitle}
             canModify={canModify}
             setIsModalOpen={setIsModalOpen}
           />
@@ -248,44 +254,6 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
             </div>
           </div>
         )}
-        {/* {isCommentTask && (
-          <div className="bg-white p-2 rounded-sm shadow border border-blue-400">
-            <textarea
-              className="w-full text-sm resize-none border border-gray-300 rounded-sm focus:ring-0 p-2 text-gray-800"
-              rows={2}
-              placeholder="Comment Task"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              autoFocus
-            />
-
-            <div className="flex items-center justify-start mt-2 space-x-2 border-t pt-2 border-gray-100">
-              <button
-                onClick={() => {
-                  setIsComment(false)
-                  setComment('')
-                  onTaskAction(taskId, 'comment', { comment })
-                }
-                }
-                className="p-1 rounded text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
-                disabled={!comment.trim()}
-                title="Comment task"
-              >
-                <Check className="w-4 h-4 mr-2" />
-              </button>
-              <button
-                onClick={() => {
-                  handleCancelClick
-                  setIsComment(false);
-                }}
-                className="p-1 rounded text-gray-700 hover:text-red-500"
-                title="Cancel"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )} */}
 
         {!isCreating && canModify && (
           <button
@@ -297,7 +265,7 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
           </button>
         )}
         <CommentsModal isModalOpen={isModalOpen} onClose={() => setIsModalOpen(false)} taskId={taskId}
-         comment={comment} setComment={setComment}  onTaskAction={onTaskAction} />
+          comment={comment} setComment={setComment} onTaskAction={onTaskAction} />
       </div>
     </div>
   );

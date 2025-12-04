@@ -73,7 +73,7 @@ const getTasks = async (
     // Fetch project by name
     const project = await db.select().from(projects).where(eq(projects.projectName, projectName));
     if (project.length === 0) {
-      return res.status(404).json({ message: "Project not found" });
+      return res.status(404).json({ message: "Project not found",canModify: false });
     }
 
     // Fetch user email
@@ -174,7 +174,6 @@ const updateTask = async (req: Request<UpdateTaskParams, UpdateTaskBody>, res: R
   try {
     const { id } = req.params;
     const { taskName, projectName, due_date } = req.body;
-
     const updated = await db
       .update(tasks)
       .set({

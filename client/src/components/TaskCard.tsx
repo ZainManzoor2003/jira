@@ -16,12 +16,13 @@ interface Task {
 interface TaskCardProps {
     task: Task;
     onTaskAction: (taskId: string, action: 'delete' | 'update', updateData: any) => void;
-    setIsUpdateTask: React.Dispatch<React.SetStateAction<boolean>>
     setIsComment: React.Dispatch<React.SetStateAction<boolean>>
     setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>
     setTaskId: React.Dispatch<React.SetStateAction<string>>
     setUpdatedTaskTitle: React.Dispatch<React.SetStateAction<string>>
     setUpdatedDueDate: React.Dispatch<React.SetStateAction<string>>
+    updatedDueDate: string;
+    updatedTaskTitle: string;
     canModify: boolean;
 }
 
@@ -31,13 +32,16 @@ const UserAvatar: React.FC<{ initial: string }> = ({ initial }) => (
     </div>
 );
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask, setIsComment, setTaskId, setUpdatedTaskTitle,
-    setUpdatedDueDate, canModify, setIsModalOpen }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsComment, setTaskId, setUpdatedTaskTitle,
+    setUpdatedDueDate, canModify, setIsModalOpen, updatedDueDate, updatedTaskTitle }) => {
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+    const [isUpdateTitle, setIsUpdateTitle] = useState(false);
+    const [isUpdateDate, setIsUpdateDate] = useState(false);
 
     const handleDelete = (e?: React.MouseEvent | KeyboardEvent) => {
+        if (canModify === false) return;
         e?.stopPropagation?.();
         if (selectedTaskId === task.id) {
             Swal.fire({
@@ -61,14 +65,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
     const handleUpdate = (e: React.MouseEvent) => {
         if (canModify === false) return;
         e.stopPropagation();
-        setIsUpdateTask(true);
+        // setIsUpdateTask(true);
+        setIsUpdateTitle(true);
         setTaskId(task.id);
         setUpdatedTaskTitle(task.title);
+        setIsMenuOpen(false);
+    };
+
+    const handleUpdateDate = (e: React.MouseEvent) => {
+        if (canModify === false) return;
+        e.stopPropagation();
+        // setIsUpdateTask(true);
+        setIsUpdateDate(true);
+        setTaskId(task.id);
         const dateValue = new Date(task.dueDate).toISOString().split('T')[0];
         setUpdatedDueDate(dateValue);
         setIsMenuOpen(false);
     };
-
     // ⌨️ Keyboard Delete Key Listener
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -88,11 +101,30 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
 
     return (
         <div
-            onClick={(e) =>  {e.stopPropagation();setSelectedTaskId(task.id)}}
+            onClick={(e) => { e.stopPropagation(); setSelectedTaskId(task.id) }}
             className={`bg-white p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow border relative 
                 ${selectedTaskId === task.id ? "border-blue-500" : "border-gray-200"}`}
         >
-            <p className="text-sm font-medium text-gray-800 mb-2" onClick={handleUpdate}>{task.title}</p>
+            {isUpdateTitle ? <textarea
+                className="w-full text-sm resize-none border border-gray-300 rounded-sm focus:ring-0 p-2 text-gray-800"
+                rows={1}
+                placeholder="Update Task"
+                value={updatedTaskTitle}
+                onChange={(e) => setUpdatedTaskTitle(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault(); // prevents creating a new line
+                        console.log("Enter pressed!");
+                        // Call your save/update function here
+                        setIsUpdateTitle(false);
+                        onTaskAction(task.id, 'update', { updatedTaskTitle, updatedDueDate })
+                    }
+                }}
+                autoFocus
+            />
+                :
+                <p className="text-sm font-medium text-gray-800 mb-2" onDoubleClick={handleUpdate}>{task.title}</p>
+            }
 
             <div className="flex flex-wrap gap-1 mb-2">
                 {task.labels.map(label => (
@@ -103,10 +135,31 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
             </div>
 
             <div className="flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center space-x-2">
-                    <Calendar className="w-3 h-3" />
-                    <span onClick={handleUpdate}>{task.dueDate}</span>
-                </div>
+                {isUpdateDate ?
+                    <div className="flex items-center mt-2">
+                        <Calendar className="w-4 h-4 text-gray-500 mr-2" />
+                        <input
+                            type="date"
+                            className="w-full text-xs text-gray-700 border-none focus:ring-0 p-2 cursor-pointer"
+                            value={updatedDueDate}
+                            onChange={(e) => setUpdatedDueDate(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    console.log("Enter pressed for date!");
+                                    setIsUpdateDate(false);
+                                    onTaskAction(task.id, 'update', { updatedTaskTitle, updatedDueDate })
+                                }
+                            }}
+                            title="Select due date"
+                        />
+                    </div> :
+                    <div className="flex items-center space-x-2">
+                        <Calendar className="w-3 h-3" />
+                        <span onDoubleClick={handleUpdateDate}>{task.dueDate}</span>
+                    </div>
+                }
+
 
                 <div className="flex items-center space-x-2">
                     {
