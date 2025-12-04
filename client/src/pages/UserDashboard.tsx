@@ -736,6 +736,7 @@ const UserDashboard: React.FC = () => {
 
     const filterTasks = (value: string) => {
         setSearchTerm(value);
+
         if (value === '') {
             setFilterColumns(columns)
         }

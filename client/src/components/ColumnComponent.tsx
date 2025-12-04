@@ -29,13 +29,7 @@ interface Column {
   tasks: Task[];
   color: string;
 }
-interface Comment {
-  id: string;
-  task_id: string;
-  user_id: string;
-  comment: string;
-  created_at: string;
-}
+
 
 interface TaskCardProps {
   task: Task
@@ -70,6 +64,22 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
   const [comment, setComment] = useState('');
   const [taskId, setTaskId] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  // Define rows × columns per page for each column if needed
+  const tasksPerPage = {
+    'to-do': 2,        // 2 rows × 4 columns
+    'in-progress': 2,  // 4 rows × 1 column (example)
+    'done': 2,         // 6 tasks per page
+  };
+
+  const perPage = tasksPerPage[column.id as keyof typeof tasksPerPage] || 4;
+
+  // Slice tasks for current page
+  const paginatedTasks = column.tasks.slice((currentPage - 1) * perPage, currentPage * perPage);
+
+  // Number of pages
+  const totalPages = Math.ceil(column.tasks.length / perPage);
 
 
   // Make the column droppable
@@ -136,8 +146,7 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
 
       {/* Task List */}
       <div className="min-h-[100px] space-y-3">
-        {column.tasks.map((task) => (
-          // Use a new DraggableTaskCard wrapper component
+        {paginatedTasks.map((task) => (
           <TaskCardWrapper
             key={task.id}
             task={task}
@@ -152,6 +161,20 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
             setIsModalOpen={setIsModalOpen}
           />
         ))}
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center space-x-2 mt-2">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                className={`px-2 py-1 rounded text-sm ${currentPage === i + 1 ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                onClick={() => setCurrentPage(i + 1)}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ... (Input for new task and update task) */}
         {/* Input for new task */}

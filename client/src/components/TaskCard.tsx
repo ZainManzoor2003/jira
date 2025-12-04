@@ -152,6 +152,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsComment, s
                                 }
                             }}
                             title="Select due date"
+                            autoFocus
                         />
                     </div> :
                     <div className="flex items-center space-x-2">
