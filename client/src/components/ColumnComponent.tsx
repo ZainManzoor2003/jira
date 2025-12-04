@@ -66,6 +66,9 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    setCurrentPage(1) // Reset to first page when tasks change
+  }, [column]);
   // Define rows × columns per page for each column if needed
   const tasksPerPage = {
     'to-do': 2,        // 2 rows × 4 columns
