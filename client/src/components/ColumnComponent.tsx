@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, MoreHorizontal, Check, X, Calendar, Edit } from 'lucide-react';
 
 // DND-KIT IMPORTS
@@ -8,6 +8,8 @@ import { useDraggable } from '@dnd-kit/core';
 
 import TaskCard from './TaskCard';
 import CommentsModal from '../modals/CommentModal';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 // --- Interfaces ---
 interface Task {
@@ -26,6 +28,13 @@ interface Column {
   statusCount: number;
   tasks: Task[];
   color: string;
+}
+interface Comment {
+  id: string;
+  task_id: string;
+  user_id: string;
+  comment: string;
+  created_at: string;
 }
 
 interface TaskCardProps {
@@ -49,7 +58,7 @@ interface ColumnComponentProps {
   canModify: boolean;
 }
 
-const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, onTaskAction, taskIds,canModify }) => {
+const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, onTaskAction, taskIds, canModify }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newDueDate, setNewTaskDueDate] = useState('');
@@ -60,6 +69,7 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
   const [comment, setComment] = useState('');
   const [taskId, setTaskId] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
 
   // Make the column droppable
   const { setNodeRef, isOver } = useDroppable({
@@ -238,7 +248,7 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
             </div>
           </div>
         )}
-        {isCommentTask && (
+        {/* {isCommentTask && (
           <div className="bg-white p-2 rounded-sm shadow border border-blue-400">
             <textarea
               className="w-full text-sm resize-none border border-gray-300 rounded-sm focus:ring-0 p-2 text-gray-800"
@@ -275,7 +285,7 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
               </button>
             </div>
           </div>
-        )}
+        )} */}
 
         {!isCreating && canModify && (
           <button
@@ -286,7 +296,8 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
             Create
           </button>
         )}
-        <CommentsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} taskId={taskId} />
+        <CommentsModal isModalOpen={isModalOpen} onClose={() => setIsModalOpen(false)} taskId={taskId}
+         comment={comment} setComment={setComment}  onTaskAction={onTaskAction} />
       </div>
     </div>
   );

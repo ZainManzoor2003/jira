@@ -4,7 +4,7 @@ import axios from 'axios'
 import { toast } from "react-toastify";
 
 export default function Signup() {
-    axios.defaults.baseURL = 'http://localhost:8080'
+    axios.defaults.baseURL = 'http://localhost:3001'
     const navigate = useNavigate()
     const [email, setEmail] = useState('')
     const [error, setError] = useState('')
@@ -26,7 +26,7 @@ export default function Signup() {
         setError('') // clear previous error
 
         try {
-            const response = await axios.post('http://localhost:8080/auth/signup', { email })
+            const response = await axios.post('http://localhost:3001/auth/signup', { email })
             console.log('Signup response:', response.data)
             if (response.data.success == true) {
                 toast.success(response.data.message)

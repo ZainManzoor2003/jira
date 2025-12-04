@@ -1,3 +1,4 @@
+/// <reference types="node" />
 const nodemailer = require("nodemailer");
 
 // Create transporter
@@ -15,7 +16,7 @@ function generateOTP() {
 }
 
 // Function to send OTP email
-async function sendEmailOtp(toEmail) {
+async function sendEmailOtp(toEmail: string) {
     const otp = generateOTP();
 
     const mailOptions = {

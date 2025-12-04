@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MoreHorizontal, Calendar, MessageSquare, Trash2, Edit, MessagesSquare } from 'lucide-react';
+import Swal from "sweetalert2";
 
 // --- Data Structures ---
 interface Task {
@@ -39,9 +40,21 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
     const handleDelete = (e?: React.MouseEvent | KeyboardEvent) => {
         e?.stopPropagation?.();
         if (selectedTaskId === task.id) {
-            onTaskAction(task.id, 'delete', null);
-            setIsMenuOpen(false);
-            setSelectedTaskId(null);
+            Swal.fire({
+                title: "Delete this task?",
+                text: "This action cannot be undone.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Yes, delete it",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    onTaskAction(task.id, "delete", null);
+                    setIsMenuOpen(false);
+                    setSelectedTaskId(null);
+                }
+            });
         }
     };
 
@@ -67,14 +80,19 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [selectedTaskId]);
+    useEffect(() => {
+        const handleClickOutside = () => setSelectedTaskId(null);
+        document.addEventListener("click", handleClickOutside);
+        return () => document.removeEventListener("click", handleClickOutside);
+    }, []);
 
     return (
         <div
-            onDoubleClick={() => setSelectedTaskId(task.id)}
+            onClick={(e) =>  {e.stopPropagation();setSelectedTaskId(task.id)}}
             className={`bg-white p-3 rounded-lg shadow-md hover:shadow-lg transition-shadow border relative 
                 ${selectedTaskId === task.id ? "border-blue-500" : "border-gray-200"}`}
         >
-            <p className="text-sm font-medium text-gray-800 mb-2" onDoubleClick={handleUpdate}>{task.title}</p>
+            <p className="text-sm font-medium text-gray-800 mb-2" onClick={handleUpdate}>{task.title}</p>
 
             <div className="flex flex-wrap gap-1 mb-2">
                 {task.labels.map(label => (
@@ -87,7 +105,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
             <div className="flex items-center justify-between text-xs text-gray-500">
                 <div className="flex items-center space-x-2">
                     <Calendar className="w-3 h-3" />
-                    <span onDoubleClick={handleUpdate}>{task.dueDate}</span>
+                    <span onClick={handleUpdate}>{task.dueDate}</span>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -106,15 +124,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
                     </div>
 
                     <div className="flex-col">
-                        <div className="flex justify-end">
+                        {/* <div className="flex justify-end">
 
                             <MessagesSquare
                                 className="w-4 h-4 text-gray-400 hover:text-gray-800 cursor-pointer"
-                                onDoubleClick={() => { setIsComment(true); setTaskId(task.id); setIsMenuOpen(false); }}
+                                onClick={() => { setIsComment(true); setTaskId(task.id); setIsMenuOpen(false); }}
                             />
-                        </div>
+                        </div> */}
                         <button
-                            onDoubleClick={() => { setTaskId(task.id); setIsModalOpen(true) }}
+                            onClick={() => { setTaskId(task.id); setIsModalOpen(true) }}
                             className="text-xs text-gray-600 hover:text-gray-800 font-medium cursor-pointer"
                             title="View all task comments"
                         >
@@ -124,14 +142,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onTaskAction, setIsUpdateTask
                         {/* {isMenuOpen && (
                             <div className="absolute right-0 top-6 w-32 bg-white rounded-lg shadow-xl z-10 border border-gray-100">
                                 <button
-                                    onDoubleClick={handleUpdate}
+                                    onClick={handleUpdate}
                                     className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                 >
                                     <Edit className="w-4 h-4 mr-2" />
                                     Update
                                 </button>
                                 <button
-                                    onDoubleClick={handleDelete}
+                                    onClick={handleDelete}
                                     className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                                 >
                                     <Trash2 className="w-4 h-4 mr-2" />

@@ -1,10 +1,28 @@
+/// <reference types="node" />
+import { Request, Response } from "express";
 import { users, projects } from "../src/db/schema"; // path to your users table
 import { db } from "../src/db/db"; // your Drizzle db instance
 import { eq, sql } from 'drizzle-orm';
 const { sendEmailOtp } = require("../controllers/emailNotify"); // your email service
 import jwt from "jsonwebtoken";
 
-const login = async (req, res) => {
+interface LoginBody {
+  email: string;
+  assignedProject?: string;
+}
+
+interface SignupBody {
+  email: string;
+}
+
+interface VerifyEmailBody {
+  email: string;
+  otp: string;
+}
+
+
+
+const login = async (req: Request<{}, {}, LoginBody>, res: Response) => {
   try {
     const { email, assignedProject } = req.body;
     // 1. Validate input
@@ -79,13 +97,13 @@ const login = async (req, res) => {
       token, // optional to return
       success: true
     });
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-const signup = async (req, res) => {
+const signup = async (req: Request<{}, {}, SignupBody>, res: Response) => {
   try {
     const { email } = req.body;
 
@@ -144,7 +162,7 @@ const signup = async (req, res) => {
   }
 };
 
-const resendOTP = async (req, res) => {
+const resendOTP = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
 
@@ -177,7 +195,7 @@ const resendOTP = async (req, res) => {
 
 }
 
-const verifyEmail = async (req, res) => {
+const verifyEmail = async (req: Request<{}, {}, VerifyEmailBody>, res: Response) => {
   try {
     const { email, otp } = req.body;
 
@@ -201,7 +219,7 @@ const verifyEmail = async (req, res) => {
 
     // Check if OTP expired
     const now = new Date();
-    if (new Date(currentUser.otp_expiry_date) < now) {
+    if (new Date(currentUser.otp_expiry_date!) < now) {
       return res.json({ message: "OTP has expired", success: false });
     }
 
@@ -223,7 +241,7 @@ const verifyEmail = async (req, res) => {
 };
 
 // GET /auth/profiles
-const getAllProfiles = async (req, res) => {
+const getAllProfiles = async (req: Request, res: Response) => {
   // await db.delete(users); // Example delete operation
   try {
     const allUsers = await db.select().from(users); // fetch all users

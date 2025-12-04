@@ -14,7 +14,7 @@ const PrivateRoute: FC<PrivateRouteProps> = ({ children }) => {
 
   useEffect(() => {
     axios
-      .get<{ loggedIn: boolean; user?: any }>("http://localhost:8080/auth/check-auth", {
+      .get<{ loggedIn: boolean; user?: any }>("http://localhost:3001/auth/check-auth", {
         withCredentials: true,
       })
       .then((response) => {

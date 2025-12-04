@@ -2,75 +2,137 @@ import { projects, tasks, users } from "../src/db/schema"; // path to your users
 import { comments } from "../src/db/schema"; // path to your users table
 import { db } from "../src/db/db"; // your Drizzle db instance
 import { and, eq, inArray, or, sql } from 'drizzle-orm';
+import { Request, Response } from "express";
+import { ParamsDictionary } from "express-serve-static-core";
 
+interface AuthenticatedRequest<
+  P extends ParamsDictionary = ParamsDictionary,
+  B = any
+> extends Request<P, any, B> {
+  user?: {
+    id: string;
+    email?: string;
+  };
+}
+
+interface GetTasksParams extends ParamsDictionary {
+  projectName: string;
+}
+
+interface AddTaskBody {
+  taskName: string;
+  projectName: string;
+  status?: string;
+  due_date: string;
+}
+interface UpdateTaskStatusParams {
+  id: string;
+}
+
+interface UpdateTaskParams {
+  id: string;
+}
+interface UpdateTaskBody {
+  taskName: string;
+  projectName: string;
+  due_date: string;
+}
+
+// Body interface
+interface UpdateTaskStatusBody {
+  status: string;
+}
+
+interface CommentsByTaskParams extends ParamsDictionary {
+  taskId: string;
+}
+
+interface DeleteTaskParams extends ParamsDictionary {
+  id: string;
+  projectName: string;
+}
+interface CommentsParams extends ParamsDictionary {
+  taskId: string;
+}
+interface CommentsBody {
+  comment: string;
+}
 // GET ALL TASKS
-const getTasks = async (req, res) => {
-  // await db.delete(tasks);
-  // await db.delete(projects);
+const getTasks = async (
+  req: AuthenticatedRequest<GetTasksParams>,
+  res: Response
+) => {
   try {
-
     const { projectName } = req.params;
-    const user_id = req.user?.id; // from auth middleware
+    const user_id = req.user?.id;
 
+    if (!user_id) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // Fetch project by name
     const project = await db.select().from(projects).where(eq(projects.projectName, projectName));
     if (project.length === 0) {
       return res.status(404).json({ message: "Project not found" });
     }
+
+    // Fetch user email
     const user = await db.select().from(users).where(eq(users.id, user_id));
-    const userEmail = user[0].email;
+    const userEmail = user[0]?.email;
+    if (!userEmail) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
+    // Get tasks where user is owner or member
     const allTasks = await db.select().from(projects).where(
-
       or(
-        // Condition 1: User owns the task
-        and(
-          eq(projects.owner_id, user_id),
-          eq(projects.projectName, projectName)
-        ),
-
-        // Condition 2: User is a member of the project
-        and(
-          sql`${userEmail} = ANY(${projects.members_email})`,
-          eq(projects.projectName, projectName)
-        )
+        // Condition 1: user owns the project
+        and(eq(projects.owner_id, user_id), eq(projects.projectName, projectName)),
+        // Condition 2: user is a member of the project
+        and(sql`${userEmail} = ANY(${projects.members_email})`, eq(projects.projectName, projectName))
       )
-    )
+    );
 
-    const taskIds = allTasks[0].tasks_ids;
+    if (allTasks.length === 0) {
+      return res.status(404).json({ message: "No tasks found for this project" });
+    }
 
-    // console.log('taskIds',taskIds)
+    const taskIds: string[] = allTasks[0].tasks_ids;
 
+    // Fetch tasks by IDs
     const projectTasks = await db
       .select()
       .from(tasks)
       .where(inArray(tasks.id, taskIds));
-    // console.log('projectTasks',projectTasks)
 
+    // Check if user can modify (owner)
     const canModify = project[0].owner_id === user_id;
 
-    res.json({ allTasks: projectTasks, canModify });
-  } catch (err) {
+    return res.status(200).json({ allTasks: projectTasks, canModify });
+  } catch (err: any) {
     console.error(err);
-    res.status(500).json({ error: "Unable to fetch tasks" });
+    return res.status(500).json({ error: "Unable to fetch tasks", details: err.message });
   }
 };
 
 // ADD NEW TASK
-const addTask = async (req, res) => {
+const addTask = async (
+  req: AuthenticatedRequest<{}, AddTaskBody>,
+  res: Response
+) => {
   try {
     const { taskName, projectName, status, due_date } = req.body;
     const user_id = req.user?.id;
 
-    // 1. Check if project exists
+    if (!user_id) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // 1. Check if project exists for this user
     const existingProject = await db
       .select()
       .from(projects)
-      .where(
-        and(
-          eq(projects.projectName, projectName),
-          eq(projects.owner_id, user_id)
-        )
-      )
+      .where(and(eq(projects.projectName, projectName), eq(projects.owner_id, user_id)));
 
     if (existingProject.length === 0) {
       return res.status(409).json({
@@ -78,7 +140,7 @@ const addTask = async (req, res) => {
       });
     }
 
-    // 2. Insert task
+    // 2. Insert the new task
     const newTask = await db
       .insert(tasks)
       .values({
@@ -90,9 +152,8 @@ const addTask = async (req, res) => {
       })
       .returning();
 
-    // console.log('new task', newTask)
-
-    const updatedProject = await db
+    // 3. Update the project's tasks_ids array
+    await db
       .update(projects)
       .set({
         tasks_ids: sql`${projects.tasks_ids} || ARRAY[${newTask[0].id}]::uuid[]`,
@@ -100,15 +161,16 @@ const addTask = async (req, res) => {
       .where(eq(projects.id, existingProject[0].id))
       .returning();
 
-    res.json(newTask[0]);
-  } catch (err) {
+    // 4. Respond with the newly created task
+    return res.status(201).json(newTask[0]);
+
+  } catch (err: any) {
     console.error(err);
-    res.status(500).json({ error: "Unable to add task" });
+    return res.status(500).json({ error: "Unable to add task", details: err.message });
   }
 };
-
 // UPDATE TASK
-const updateTask = async (req, res) => {
+const updateTask = async (req: Request<UpdateTaskParams, UpdateTaskBody>, res: Response) => {
   try {
     const { id } = req.params;
     const { taskName, projectName, due_date } = req.body;
@@ -130,27 +192,37 @@ const updateTask = async (req, res) => {
   }
 };
 
-const updateTaskStatus = async (req, res) => {
+const updateTaskStatus = async (
+  req: Request<UpdateTaskStatusParams, UpdateTaskStatusBody>,
+  res: Response
+) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
+    // Update task status
     const updated = await db
       .update(tasks)
-      .set({
-        status
-      })
+      .set({ status })
       .where(eq(tasks.id, id))
       .returning();
 
-    res.json(updated[0]);
-  } catch (err) {
+    if (updated.length === 0) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    return res.status(200).json(updated[0]);
+  } catch (err: any) {
     console.error(err);
-    res.status(500).json({ error: "Unable to update task" });
+    return res.status(500).json({ error: "Unable to update task", details: err.message });
   }
 };
 
-const deleteTask = async (req, res) => {
+const deleteTask = async (req: AuthenticatedRequest<DeleteTaskParams>, res: Response) => {
   try {
     const { id, projectName } = req.params;
     const user_id = req.user?.id;
@@ -162,7 +234,7 @@ const deleteTask = async (req, res) => {
       .where(
         and(
           eq(projects.projectName, projectName),
-          eq(projects.owner_id, user_id)
+          eq(projects.owner_id, user_id!)
         )
       );
 
@@ -199,7 +271,7 @@ const deleteTask = async (req, res) => {
   }
 };
 
-const commentTask = async (req, res) => {
+const commentTask = async (req: AuthenticatedRequest<CommentsParams, CommentsBody>, res: Response) => {
   try {
     const { taskId } = req.params; // from URL
     const { comment } = req.body;
@@ -213,8 +285,8 @@ const commentTask = async (req, res) => {
 
     // insert into comments table
     const result = await db.insert(comments).values({
-      task_id: taskId,
-      user_id: userId,
+      task_id: taskId!,
+      user_id: userId!,
       comment,
     }).returning();
 
@@ -228,7 +300,7 @@ const commentTask = async (req, res) => {
   }
 };
 
-const getComments = async (req, res) => {
+const getComments = async (req: Request, res: Response) => {
   // await db.delete(comments);
   try {
     const allComments = await db.select().from(comments);
@@ -239,7 +311,7 @@ const getComments = async (req, res) => {
   }
 };
 
-const getCommentsByTask = async (req, res) => {
+const getCommentsByTask = async (req: AuthenticatedRequest<CommentsByTaskParams>, res: Response) => {
   try {
     const { taskId } = req.params;
     const userId = req.user?.id // from auth middleware
@@ -256,8 +328,10 @@ const getCommentsByTask = async (req, res) => {
       .select()
       .from(comments)
       .where(
-        eq(comments.task_id, taskId),
-        eq(comments.user_id, userId)
+        // and(
+        eq(comments.task_id, taskId)
+        // eq(comments.user_id, userId)
+        // )
       );
 
     res.json(taskComments);

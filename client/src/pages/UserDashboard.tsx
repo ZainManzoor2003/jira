@@ -16,8 +16,9 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 // DND-KIT IMPORTS
-import { DndContext, closestCorners } from '@dnd-kit/core';
-import type { DragEndEvent, UniqueIdentifier } from '@dnd-kit/core';
+import { DndContext, closestCorners,MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent, UniqueIdentifier} from '@dnd-kit/core';
+
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 // END DND-KIT IMPORTS
@@ -117,7 +118,7 @@ const ProjectListSection: React.FC<ProjectListSectionProps> = ({ projects, fetch
 
     const navigate = useNavigate()
 
-    axios.defaults.baseURL = 'http://localhost:8080'
+    axios.defaults.baseURL = 'http://localhost:3001'
 
     const handleUpdateProject = async (id: string, projectName: string) => {
         const payload: any = {};
@@ -362,7 +363,7 @@ const ProjectListSection: React.FC<ProjectListSectionProps> = ({ projects, fetch
                                                 {project.projectName}
                                             </h2>
                                         </div>
-                                            <ArrowDown className="w-4 h-4" />
+                                        <ArrowDown className="w-4 h-4" />
 
 
 
@@ -424,12 +425,13 @@ const ProjectListSection: React.FC<ProjectListSectionProps> = ({ projects, fetch
 
 // --- Main App Component ---
 const UserDashboard: React.FC = () => {
-    axios.defaults.baseURL = 'http://localhost:8080'
+    axios.defaults.baseURL = 'http://localhost:3001'
 
     const { projectName } = useParams()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate()
+
 
     const [projects, setProjects] = useState<Project[]>([]);
     const [assignedProjects, setAssignedProjects] = useState<Project[]>([]);
@@ -445,6 +447,16 @@ const UserDashboard: React.FC = () => {
         { id: "in-progress", title: "IN PROGRESS", statusCount: 0, color: "text-blue-500", tasks: [] },
         { id: "done", title: "DONE", statusCount: 0, color: "text-green-500", tasks: [] },
     ]);
+
+    const mouseSensor = useSensor(MouseSensor, {
+        activationConstraint: {
+            distance: 5, // user must move 5px to start drag
+        },
+    });
+
+    const sensors = useSensors(mouseSensor, useSensor(TouchSensor));
+
+    
 
     const getAllTasks = async () => {
         const res = await axios.get(`/task/all/${projectName}`, { withCredentials: true });
@@ -835,9 +847,10 @@ const UserDashboard: React.FC = () => {
                     {/* Kanban Board Container - WRAPPED WITH DNDCONTEXT */}
                     <main className="flex-1 overflow-x-auto p-4 bg-gray-100">
                         <DndContext
-                            // sensors={[]} // Keep empty for simpler implementation, focusing on manual drag
+                            sensors={sensors}
                             collisionDetection={closestCorners}
                             onDragEnd={handleDragEnd}
+
                         >
                             <div className="flex space-x-4 min-h-inherit">
                                 {filterColumns.map(col => (

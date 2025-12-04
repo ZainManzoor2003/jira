@@ -12,7 +12,7 @@ const users = pgTable("users", {
 const projects = pgTable("projects", {
     id: uuid("id").primaryKey().defaultRandom(),
     owner_email: varchar("owner_email").notNull(),
-    owner_id: uuid("owner_id").notNull(),
+    owner_id: uuid("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),  // FK → users.id
     members_email: varchar("members_email", { length: 255 }).array().notNull().default([]),
     projectName: varchar("project_name", { length: 255 }).notNull(),
     tasks_ids: uuid("tasks_ids").array().notNull().default([]),
@@ -21,7 +21,7 @@ const projects = pgTable("projects", {
 
 const tasks = pgTable("tasks", {
     id: uuid("id").primaryKey().defaultRandom(),
-    user_id: uuid("user_id").notNull(),
+    user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),  // FK → users.id
     taskName: varchar("task_name", { length: 255 }).notNull(),
     projectName: varchar("project_name", { length: 255 }).notNull(),
     status: varchar("status", { length: 50 }).notNull().default("to-do"),
@@ -31,15 +31,10 @@ const tasks = pgTable("tasks", {
 
 const comments = pgTable("comments", {
     id: uuid("id").primaryKey().defaultRandom(),
-    task_id: uuid("task_id").notNull(),
-    user_id: uuid("user_id").notNull(),
+    task_id: uuid("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),  // FK → tasks.id
+    user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),  // FK → users.id
     comment: varchar("comment", { length: 255 }).notNull(),
     created_at: timestamp("created_at").defaultNow(),
 })
 
-module.exports = {
-    users,
-    projects,
-    tasks,
-    comments
-};
+export { users, projects, tasks, comments };
