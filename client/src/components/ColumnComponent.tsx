@@ -11,6 +11,9 @@ import CommentsModal from '../modals/CommentModal';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
+import Tippy from "@tippyjs/react";
+import "tippy.js/dist/tippy.css";
+
 // --- Interfaces ---
 interface Task {
   id: string;
@@ -138,12 +141,17 @@ const ColumnComponent: React.FC<ColumnComponentProps> = ({ column, onAddTask, on
           <span className={`text-xs ml-1 font-bold ${column.color}`}>{column.statusCount}</span>
         </h3>
         <div className="flex items-center space-x-2">
-          {/* Coming Soon label */}
-          <span className="text-xs text-gray-400 italic">
-            Coming Soon
-          </span>
-          <Plus className="w-4 h-4 text-gray-500 cursor-pointer hover:text-gray-700" />
-          <MoreHorizontal className="w-4 h-4 text-gray-500 cursor-pointer hover:text-gray-700" />
+          <Tippy content="Coming Soon" placement="top">
+
+
+            <Plus className="w-4 h-4 text-gray-500 cursor-pointer hover:text-gray-700" />
+          </Tippy>
+
+          <Tippy content="Coming Soon" placement="top">
+
+
+            <MoreHorizontal className="w-4 h-4 text-gray-500 cursor-pointer hover:text-gray-700" />
+          </Tippy>
         </div>
       </div>
 

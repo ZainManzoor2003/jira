@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { useSearchParams } from "react-router-dom";
 
 export default function Login() {
-    axios.defaults.baseURL = 'http://localhost:3001'
+    axios.defaults.baseURL = 'http://localhost:8080'
     const [email, setEmail] = useState('')
     const [loading, setLoading] = useState(false)
     const navigate = useNavigate()
@@ -26,7 +26,7 @@ export default function Login() {
         }
 
         try {
-            const response = await axios.post('http://localhost:3001/auth/login', { email, assignedProject }, { withCredentials: true })
+            const response = await axios.post('http://localhost:8080/auth/login', { email, assignedProject }, { withCredentials: true })
             console.log('Login response:', response.data)
             if (response.data.success == true) {
                 toast.success(response.data.message)

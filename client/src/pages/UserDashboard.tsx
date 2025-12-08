@@ -21,6 +21,8 @@ import type { DragEndEvent, UniqueIdentifier } from '@dnd-kit/core';
 
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import Tippy from "@tippyjs/react";
+import "tippy.js/dist/tippy.css";
 // END DND-KIT IMPORTS
 
 // NOTE: Assuming Header is a simple component and does not cause errors
@@ -72,20 +74,19 @@ const Sidebar: React.FC<{ isOpen: boolean, toggle: () => void }> = ({ isOpen }) 
     const { projectName } = useParams();
     // ... (Sidebar component code remains the same)
     const NavItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean }> = ({ icon, label, active }) => (
-        <div
-            className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors 
-    ${active ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
-        >
-            {icon}
-            <span className="ml-3 text-sm">{label}</span>
 
-            {/* Show "Coming Soon" only if not active */}
-            {!active && (
-                <span className="ml-2 text-xs text-gray-400 italic">
-                    Coming Soon
-                </span>
-            )}
-        </div>
+        <>
+            <Tippy content="Coming Soon" disabled={active} placement="top">
+                <div
+                    className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors 
+                ${active ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                    {icon}
+                    <span className="ml-3 text-sm">{label}</span>
+
+                </div>
+            </Tippy>
+        </>
     );
 
     return (
@@ -125,7 +126,7 @@ const ProjectListSection: React.FC<ProjectListSectionProps> = ({ projects, fetch
 
     const navigate = useNavigate()
 
-    axios.defaults.baseURL = 'http://localhost:3001'
+    axios.defaults.baseURL = 'http://localhost:8080'
 
     const handleUpdateProject = async (id: string, projectName: string) => {
         const payload: any = {};
@@ -432,7 +433,7 @@ const ProjectListSection: React.FC<ProjectListSectionProps> = ({ projects, fetch
 
 // --- Main App Component ---
 const UserDashboard: React.FC = () => {
-    axios.defaults.baseURL = 'http://localhost:3001'
+    axios.defaults.baseURL = 'http://localhost:8080'
 
     const { projectName } = useParams()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -842,36 +843,33 @@ const UserDashboard: React.FC = () => {
                             </div>
 
                             <div className="flex items-center space-x-2">
-                                <button className="flex items-center text-sm font-medium text-gray-700 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors border border-gray-300">
-                                    <Filter className="w-4 h-4 mr-1" />
-                                    Filter
-                                </button>
+                                <Tippy content="Coming Soon" placement="top">
 
-                                {/* Coming Soon label */}
-                                <span className="text-xs text-gray-400 italic">
-                                    Coming Soon
-                                </span>
+                                    <button className="flex items-center text-sm font-medium text-gray-700 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors border border-gray-300">
+                                        <Filter className="w-4 h-4 mr-1" />
+                                        Filter
+                                    </button>
+                                </Tippy>
                             </div>
                         </div>
 
                         <div className="flex flex-wrap gap-3 items-center">
-                            {/* Coming Soon label */}
-                            <span className="text-xs text-gray-400 italic ml-2">
-                                Coming Soon
-                            </span>
-                            <button className="flex items-center text-sm font-medium text-white bg-blue-600 px-4 py-2 hover:bg-blue-700 transition-colors cursor-pointer">
-                                Complete sprint
-                                <CheckCircle className="w-4 h-4 ml-1" />
-                            </button>
+                            <Tippy content="Coming Soon" placement="top">
 
-                            <button className="flex items-center text-sm font-medium text-gray-700 bg-white px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors border border-gray-300">
-                                Group
-                                <ChevronDown className="w-4 h-4 ml-1" />
-                            </button>
+                                <button className="flex items-center text-sm font-medium text-white bg-blue-600 px-4 py-2 hover:bg-blue-700 transition-colors cursor-pointer">
+                                    Complete sprint
+                                    <CheckCircle className="w-4 h-4 ml-1" />
+                                </button>
+                            </Tippy>
 
-                            <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300">
-                                <MoreHorizontal className="w-5 h-5" />
-                            </button>
+
+                            <Tippy content="Coming Soon" placement="top">
+
+                                <button className="flex items-center text-sm font-medium text-gray-700 bg-white px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors border border-gray-300">
+                                    Group
+                                    <ChevronDown className="w-4 h-4 ml-1" />
+                                </button>
+                            </Tippy>
 
 
                         </div>
@@ -903,7 +901,7 @@ const UserDashboard: React.FC = () => {
                     </main>
                 </div>
             }
-        </div>
+        </div >
     );
 };
 
